@@ -1,17 +1,30 @@
-use serde_json::json;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+struct WdrConfig {
+    configs: Vec<ProcessConfig>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+struct ProcessConfig {
+    name: String,
+    version: String,
+}
 
 fn main() {
-    let config_json = json!({
-      "configs": [
+    let data = r#"
         {
-          "name": "hello",
-          "version": "1",
-          "command": []
-        }
-      ]
-    });
+            "configs": [
+                {
+                    "name": "hello",
+                    "version": "1"
+                }
+           ]
+        }"#;
 
-    let configs = &config_json["configs"];
+    let wdr_config: WdrConfig = serde_json::from_str(&data).unwrap();
 
-    println!("configs => {:#?}", configs);
+    println!("deserialized = {:?}", wdr_config);
 }
