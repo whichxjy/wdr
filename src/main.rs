@@ -1,4 +1,11 @@
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate stdext;
 extern crate zookeeper;
+
+#[macro_use]
+mod logger;
 
 use serde::{Deserialize, Serialize};
 use std::str;
@@ -26,7 +33,11 @@ impl Watcher for LoggingWatcher {
 }
 
 fn main() {
+    env_logger::init();
+
     let zk_urls = "localhost:2181";
+    wdr_info!("???");
+    wdr_info!("ZK URLs: {}", zk_urls);
 
     let zk_client = ZooKeeper::connect(&*zk_urls, Duration::from_secs(15), LoggingWatcher).unwrap();
 
