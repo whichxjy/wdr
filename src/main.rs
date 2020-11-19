@@ -56,10 +56,16 @@ fn main() {
 
     if !zk_client.exists(path) {
         // Create a new node and write config.
-        if let Err(err) = zk_client.create(path, data.as_bytes().to_vec(), CreateMode::Persistent) {
+        if let Err(err) = zk_client.create(path, CreateMode::Persistent) {
             wdr_error!("{}", err);
             return;
         }
+    }
+
+    // Write config.
+    if let Err(err) = zk_client.set_data(path, data.as_bytes().to_vec()) {
+        wdr_error!("{}", err);
+        return;
     }
 
     // Read config.

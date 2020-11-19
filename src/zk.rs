@@ -1,5 +1,5 @@
 use std::time::Duration;
-use zookeeper::{Acl, CreateMode, WatchedEvent, Watcher, ZkResult, ZooKeeper};
+use zookeeper::{Acl, CreateMode, Stat, WatchedEvent, Watcher, ZkResult, ZooKeeper};
 
 struct LoggingWatcher;
 impl Watcher for LoggingWatcher {
@@ -20,8 +20,9 @@ impl ZkClient {
         }
     }
 
-    pub fn create(&self, path: &str, data: Vec<u8>, mode: CreateMode) -> ZkResult<String> {
-        self.zk.create(path, data, Acl::open_unsafe().clone(), mode)
+    pub fn create(&self, path: &str, mode: CreateMode) -> ZkResult<String> {
+        self.zk
+            .create(path, vec![], Acl::open_unsafe().clone(), mode)
     }
 
     pub fn exists(&self, path: &str) -> bool {
@@ -36,5 +37,9 @@ impl ZkClient {
             Ok((data, _)) => Ok(data),
             Err(err) => Err(err),
         }
+    }
+
+    pub fn set_data(&self, path: &str, data: Vec<u8>) -> ZkResult<Stat> {
+        self.zk.set_data(path, data, None)
     }
 }
