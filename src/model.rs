@@ -12,3 +12,14 @@ struct ProcessConfig {
     name: String,
     version: String,
 }
+
+impl WdrConfig {
+    pub fn from_str(data: &str) -> Result<Self, ()> {
+        let wdr_config: WdrConfig = match serde_json::from_str(data) {
+            Ok(wdr_config) => wdr_config,
+            _ => return Err(()),
+        };
+
+        Ok(wdr_config)
+    }
+}

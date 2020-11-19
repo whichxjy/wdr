@@ -57,12 +57,31 @@ fn main() {
     }
 
     // Read config.
-    match zk_client.get_data(path) {
+    let wdr_config: WdrConfig = match zk_client.get_data(path) {
         Ok(config_data) => {
-            let config_data = str::from_utf8(&config_data).unwrap();
-            let wdr_config: WdrConfig = serde_json::from_str(config_data).unwrap();
-            println!("deserialized = {:?}", wdr_config);
+            let config_data = match str::from_utf8(&config_data) {
+                Ok(config_data) => config_data,
+                Err(err) => {
+                    wdr_error!("{}", err);
+                    return;
+                }
+            };
+
+            let wdr_config = match WdrConfig::from_str(config_data) {
+                Ok(wdr_config) => wdr_config,
+                _ => {
+                    wdr_error!("Fail to build config");
+                    return;
+                }
+            };
+
+            wdr_config
         }
-        Err(err) => println!("{:?}", err),
-    }
+        Err(err) => {
+            wdr_error!("{}", err);
+            return;
+        }
+    };
+
+    wdr_debug!("Read config: {:?}", wdr_config);
 }
