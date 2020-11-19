@@ -20,15 +20,13 @@ fn main() {
     let connect_string = "localhost:2181";
 
     let zk_client = match ZkClient::new(connect_string) {
-        Ok(zk_client) => {
-            wdr_info!("Connected to zk: {}", connect_string);
-            zk_client
-        }
+        Ok(zk_client) => zk_client,
         Err(err) => {
             wdr_error!("{}", err);
             return;
         }
     };
+    wdr_info!("Connected to zk: {}", connect_string);
 
     let path = "/config";
 
@@ -57,7 +55,7 @@ fn main() {
     }
 
     // Read config.
-    let wdr_config: WdrConfig = match zk_client.get_data(path) {
+    let wdr_config = match zk_client.get_data(path) {
         Ok(config_data) => {
             let config_data = match str::from_utf8(&config_data) {
                 Ok(config_data) => config_data,
@@ -67,15 +65,13 @@ fn main() {
                 }
             };
 
-            let wdr_config = match WdrConfig::from_str(config_data) {
+            match WdrConfig::from_str(config_data) {
                 Ok(wdr_config) => wdr_config,
                 _ => {
                     wdr_error!("Fail to build config");
                     return;
                 }
-            };
-
-            wdr_config
+            }
         }
         Err(err) => {
             wdr_error!("{}", err);
