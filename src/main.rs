@@ -6,25 +6,13 @@ extern crate zookeeper;
 
 #[macro_use]
 mod logger;
+mod model;
 mod zk;
 
-use serde::{Deserialize, Serialize};
+use model::WdrConfig;
 use std::str;
 use zk::ZkClient;
 use zookeeper::CreateMode;
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-struct WdrConfig {
-    configs: Vec<ProcessConfig>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-struct ProcessConfig {
-    name: String,
-    version: String,
-}
 
 fn main() {
     env_logger::init();
