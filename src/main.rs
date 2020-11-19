@@ -6,11 +6,12 @@ extern crate zookeeper;
 
 #[macro_use]
 mod logger;
+mod zk;
 
 use serde::{Deserialize, Serialize};
 use std::str;
-use std::time::Duration;
-use zookeeper::{Acl, CreateMode, WatchedEvent, Watcher, ZooKeeper};
+use zk::ZkClient;
+use zookeeper::CreateMode;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
@@ -25,21 +26,21 @@ struct ProcessConfig {
     version: String,
 }
 
-struct LoggingWatcher;
-impl Watcher for LoggingWatcher {
-    fn handle(&self, e: WatchedEvent) {
-        println!("{:?}", e)
-    }
-}
-
 fn main() {
     env_logger::init();
 
-    let zk_urls = "localhost:2181";
-    wdr_info!("???");
-    wdr_info!("ZK URLs: {}", zk_urls);
+    let connect_string = "localhost:2181";
 
-    let zk_client = ZooKeeper::connect(&*zk_urls, Duration::from_secs(15), LoggingWatcher).unwrap();
+    let zk_client = match ZkClient::new(connect_string) {
+        Ok(zk_client) => {
+            wdr_info!("Connected to zk: {}", connect_string);
+            zk_client
+        }
+        Err(err) => {
+            wdr_error!("{}", err);
+            return;
+        }
+    };
 
     let path = "/config";
 
@@ -53,21 +54,17 @@ fn main() {
        ]
     }"#;
 
-    if zk_client.exists(path, false).unwrap().is_none() {
+    if !zk_client.exists(path) {
         // Create a new node and write config.
-        if let Err(err) = zk_client.create(
-            path,
-            data.as_bytes().to_vec(),
-            Acl::open_unsafe().clone(),
-            CreateMode::Persistent,
-        ) {
-            println!("{:?}", err);
+        if let Err(err) = zk_client.create(path, data.as_bytes().to_vec(), CreateMode::Persistent) {
+            wdr_error!("{}", err);
+            return;
         }
     }
 
     // Read config.
-    match zk_client.get_data(path, false) {
-        Ok((config_data, _)) => {
+    match zk_client.get_data(path) {
+        Ok(config_data) => {
             let config_data = str::from_utf8(&config_data).unwrap();
             let wdr_config: WdrConfig = serde_json::from_str(config_data).unwrap();
             println!("deserialized = {:?}", wdr_config);
