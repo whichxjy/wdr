@@ -1,8 +1,9 @@
 use crate::model::WdrConfig;
 use crate::zk::ZkClient;
 use reqwest::blocking::Client as HttpClient;
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::Write;
+use std::os::unix::fs::OpenOptionsExt;
 use std::str;
 use url::Url;
 use zookeeper::{CreateMode, ZkError};
@@ -133,31 +134,38 @@ impl Manager {
             }
         };
 
-        match self.http_client.get(resource).send() {
-            Ok(res) => {
-                let mut file = match File::create(filename) {
-                    Ok(file) => file,
-                    Err(err) => {
-                        wdr_error!("Fail to create file {}: {}", filename, err);
-                        return;
-                    }
-                };
-
-                let bytes = match res.bytes() {
-                    Ok(bytes) => bytes,
-                    Err(err) => {
-                        wdr_error!("Fail to read bytes: {}", err);
-                        return;
-                    }
-                };
-
-                if let Err(err) = file.write_all(&bytes) {
-                    wdr_error!("Fail to write bytes to file: {}", err);
-                }
-            }
+        let res = match self.http_client.get(resource).send() {
+            Ok(res) => res,
             Err(err) => {
                 wdr_error!("Fail to download: {}", err);
+                return;
             }
         };
+
+        let mut file = match OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o777)
+            .open(filename)
+        {
+            Ok(file) => file,
+            Err(err) => {
+                wdr_error!("Fail to create file {}: {}", filename, err);
+                return;
+            }
+        };
+
+        let bytes = match res.bytes() {
+            Ok(bytes) => bytes,
+            Err(err) => {
+                wdr_error!("Fail to read bytes from response: {}", err);
+                return;
+            }
+        };
+
+        if let Err(err) = file.write_all(&bytes) {
+            wdr_error!("Fail to write bytes to file: {}", err);
+        }
     }
 }
