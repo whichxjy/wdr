@@ -19,7 +19,7 @@ impl WdrConfig {
         let wdr_config: WdrConfig = match serde_json::from_str(data) {
             Ok(wdr_config) => wdr_config,
             Err(err) => {
-                wdr_error!("{}", err);
+                wdr_error!("Fail to parse wdr config: {}", err);
                 return None;
             }
         };

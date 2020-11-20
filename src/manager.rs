@@ -147,7 +147,7 @@ impl Manager {
             .create(true)
             .truncate(true)
             .mode(0o777)
-            .open(filename)
+            .open(format!("downloaded/{}", filename))
         {
             Ok(file) => file,
             Err(err) => {
