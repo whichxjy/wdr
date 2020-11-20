@@ -1274,6 +1274,7 @@ name = "wdr"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "lazy_static",
  "log",
  "reqwest",
  "serde",

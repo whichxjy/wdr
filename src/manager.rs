@@ -1,3 +1,4 @@
+use crate::config::DOWNLOADED_PATH;
 use crate::model::WdrConfig;
 use crate::zk::ZkClient;
 use reqwest::blocking::Client as HttpClient;
@@ -134,6 +135,9 @@ impl Manager {
             }
         };
 
+        let full_path = DOWNLOADED_PATH.join(filename);
+        wdr_info!("Full path: {}", full_path.to_str().unwrap());
+
         let res = match self.http_client.get(resource).send() {
             Ok(res) => res,
             Err(err) => {
@@ -147,11 +151,11 @@ impl Manager {
             .create(true)
             .truncate(true)
             .mode(0o777)
-            .open(format!("downloaded/{}", filename))
+            .open(&full_path)
         {
             Ok(file) => file,
             Err(err) => {
-                wdr_error!("Fail to create file {}: {}", filename, err);
+                wdr_error!("Fail to open file {}: {}", filename, err);
                 return;
             }
         };
