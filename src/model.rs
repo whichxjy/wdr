@@ -11,6 +11,7 @@ pub struct WdrConfig {
 struct ProcessConfig {
     name: String,
     version: String,
+    resource: String,
 }
 
 impl WdrConfig {

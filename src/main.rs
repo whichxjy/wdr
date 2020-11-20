@@ -35,7 +35,8 @@ fn main() {
         "configs": [
             {
                 "name": "hello",
-                "version": "1"
+                "version": "1",
+                "resource": "https://whichxjy.com/hello"
             }
        ]
     }"#;
