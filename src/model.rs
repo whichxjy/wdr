@@ -15,12 +15,15 @@ struct ProcessConfig {
 }
 
 impl WdrConfig {
-    pub fn from_str(data: &str) -> Result<Self, ()> {
+    pub fn from_str(data: &str) -> Option<Self> {
         let wdr_config: WdrConfig = match serde_json::from_str(data) {
             Ok(wdr_config) => wdr_config,
-            _ => return Err(()),
+            Err(err) => {
+                wdr_error!("{}", err);
+                return None;
+            }
         };
 
-        Ok(wdr_config)
+        Some(wdr_config)
     }
 }
