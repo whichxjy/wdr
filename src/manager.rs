@@ -1,92 +1,163 @@
 use crate::model::WdrConfig;
 use crate::zk::ZkClient;
+use reqwest::blocking::Client as HttpClient;
+use std::fs::File;
+use std::io::Write;
 use std::str;
+use url::Url;
 use zookeeper::{CreateMode, ZkError};
 
-pub fn run() {
-    if let Err(err) = write_config() {
-        wdr_error!("Fail to write config: {}", err);
-        return;
-    }
-
-    if let Some(wdr_config) = read_config() {
-        wdr_debug!("Read config: {:?}", wdr_config);
-    }
+pub struct Manager {
+    http_client: HttpClient,
 }
 
-fn write_config() -> Result<(), ZkError> {
-    let connect_string = "localhost:2181";
+impl Manager {
+    pub fn new() -> Self {
+        Manager {
+            http_client: HttpClient::new(),
+        }
+    }
 
-    let zk_client = match ZkClient::new(connect_string) {
-        Ok(zk_client) => zk_client,
-        Err(err) => return Err(err),
-    };
+    pub fn run(&self) {
+        if let Err(err) = self.write_config() {
+            wdr_error!("Fail to write config: {}", err);
+            return;
+        }
 
-    let path = "/config";
+        if let Some(wdr_config) = self.read_config() {
+            wdr_debug!("Read config: {:?}", wdr_config);
+            self.run_processes(wdr_config);
+        }
+    }
 
-    let data = r#"
-    {
-        "configs": [
-            {
-                "name": "hello",
-                "version": "1",
-                "resource": "https://whichxjy.com/hello"
+    fn write_config(&self) -> Result<(), ZkError> {
+        let connect_string = "localhost:2181";
+
+        let zk_client = match ZkClient::new(connect_string) {
+            Ok(zk_client) => zk_client,
+            Err(err) => return Err(err),
+        };
+
+        let path = "/config";
+
+        let data = r#"
+        {
+            "configs": [
+                {
+                    "name": "hello",
+                    "version": "1",
+                    "resource": "https://whichxjy.com/hello"
+                }
+           ]
+        }"#;
+
+        if !zk_client.exists(path) {
+            // Create a new node.
+            if let Err(err) = zk_client.create(path, CreateMode::Persistent) {
+                return Err(err);
             }
-       ]
-    }"#;
+        }
 
-    if !zk_client.exists(path) {
-        // Create a new node and write config.
-        if let Err(err) = zk_client.create(path, CreateMode::Persistent) {
+        // Write config.
+        if let Err(err) = zk_client.set_data(path, data.as_bytes().to_vec()) {
             return Err(err);
         }
+
+        Ok(())
     }
 
-    // Write config.
-    if let Err(err) = zk_client.set_data(path, data.as_bytes().to_vec()) {
-        return Err(err);
-    }
+    fn read_config(&self) -> Option<WdrConfig> {
+        let connect_string = "localhost:2181";
 
-    Ok(())
-}
+        let zk_client = match ZkClient::new(connect_string) {
+            Ok(zk_client) => zk_client,
+            Err(err) => {
+                wdr_error!("{}", err);
+                return None;
+            }
+        };
 
-fn read_config() -> Option<WdrConfig> {
-    let connect_string = "localhost:2181";
+        let path = "/config";
 
-    let zk_client = match ZkClient::new(connect_string) {
-        Ok(zk_client) => zk_client,
-        Err(err) => {
-            wdr_error!("{}", err);
-            return None;
-        }
-    };
-
-    let path = "/config";
-
-    if !zk_client.exists(path) {
-        // Create a new node and write config.
-        if let Err(err) = zk_client.create(path, CreateMode::Persistent) {
-            wdr_error!("{}", err);
-            return None;
-        }
-    }
-
-    // Read config.
-    match zk_client.get_data(path) {
-        Ok(config_data) => {
-            let config_data = match str::from_utf8(&config_data) {
-                Ok(config_data) => config_data,
-                Err(err) => {
-                    wdr_error!("{}", err);
-                    return None;
-                }
-            };
-
-            match WdrConfig::from_str(config_data) {
-                Some(wdr_config) => Some(wdr_config),
-                None => None,
+        if !zk_client.exists(path) {
+            // Create a new node.
+            if let Err(err) = zk_client.create(path, CreateMode::Persistent) {
+                wdr_error!("{}", err);
+                return None;
             }
         }
-        _ => None,
+
+        // Read config.
+        match zk_client.get_data(path) {
+            Ok(config_data) => {
+                let config_data = match str::from_utf8(&config_data) {
+                    Ok(config_data) => config_data,
+                    Err(err) => {
+                        wdr_error!("{}", err);
+                        return None;
+                    }
+                };
+
+                match WdrConfig::from_str(config_data) {
+                    Some(wdr_config) => Some(wdr_config),
+                    None => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn run_processes(&self, wdr_config: WdrConfig) {
+        for process_config in wdr_config.configs {
+            self.download(&process_config.resource);
+        }
+    }
+
+    fn download(&self, resource: &str) {
+        wdr_info!("Start download from {}", resource);
+
+        let url = match Url::parse(resource) {
+            Ok(url) => url,
+            Err(err) => {
+                wdr_error!("Invalid URL: {}", err);
+                return;
+            }
+        };
+
+        let segments = url.path_segments().map(|c| c.collect::<Vec<_>>()).unwrap();
+        let filename = match segments.last() {
+            Some(filename) => filename,
+            None => {
+                wdr_error!("Fail to parse filename from {}", resource);
+                return;
+            }
+        };
+
+        match self.http_client.get(resource).send() {
+            Ok(res) => {
+                let mut file = match File::create(filename) {
+                    Ok(file) => file,
+                    Err(err) => {
+                        wdr_error!("Fail to create file {}: {}", filename, err);
+                        return;
+                    }
+                };
+
+                let bytes = match res.bytes() {
+                    Ok(bytes) => bytes,
+                    Err(err) => {
+                        wdr_error!("Fail to read bytes: {}", err);
+                        return;
+                    }
+                };
+
+                if let Err(err) = file.write_all(&bytes) {
+                    wdr_error!("Fail to write bytes to file: {}", err);
+                }
+            }
+            Err(err) => {
+                wdr_error!("Fail to download: {}", err);
+            }
+        };
     }
 }

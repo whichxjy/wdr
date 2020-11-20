@@ -10,7 +10,11 @@ mod manager;
 mod model;
 mod zk;
 
+use manager::Manager;
+
 fn main() {
     env_logger::init();
-    manager::run();
+
+    let manager = Manager::new();
+    manager.run();
 }

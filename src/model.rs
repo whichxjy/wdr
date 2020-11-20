@@ -3,15 +3,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct WdrConfig {
-    configs: Vec<ProcessConfig>,
+    pub configs: Vec<ProcessConfig>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-struct ProcessConfig {
-    name: String,
-    version: String,
-    resource: String,
+pub struct ProcessConfig {
+    pub name: String,
+    pub version: String,
+    pub resource: String,
 }
 
 impl WdrConfig {
