@@ -5,6 +5,7 @@ use reqwest::blocking::Client as HttpClient;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
+use std::process::Command;
 use std::str;
 use url::Url;
 use zookeeper::{CreateMode, ZkError};
@@ -171,5 +172,12 @@ impl Manager {
         if let Err(err) = file.write_all(&bytes) {
             wdr_error!("Fail to write bytes to file: {}", err);
         }
+
+        let output = Command::new("sh")
+            .args(&["-c", "echo what"])
+            .output()
+            .expect("failed to execute process");
+
+        wdr_info!("output: {}", str::from_utf8(&output.stdout).unwrap());
     }
 }
