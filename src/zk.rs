@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::time::Duration;
 use zookeeper::{Acl, CreateMode, Stat, WatchedEvent, Watcher, ZkResult, ZooKeeper};
 

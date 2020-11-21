@@ -16,11 +16,21 @@ mod model;
 mod process;
 mod zk;
 
+use crate::config::ZK_CONNECT_STRING;
 use manager::Manager;
+use zk::ZkClient;
 
 fn main() {
     env_logger::init();
 
-    let mut manager = Manager::new();
+    let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
+        Ok(zk_client) => zk_client,
+        Err(err) => {
+            wdr_error!("Fail to connect to zk: {}", err);
+            return;
+        }
+    };
+
+    let mut manager = Manager::new(zk_client);
     manager.run();
 }
