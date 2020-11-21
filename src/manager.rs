@@ -57,22 +57,22 @@ impl Manager {
         }
 
         // Read config.
-        match self.zk_client.get_data(&ZK_CONFIG_PATH) {
-            Ok(config_data) => {
-                let config_data = match str::from_utf8(&config_data) {
-                    Ok(config_data) => config_data,
-                    Err(err) => {
-                        wdr_error!("{}", err);
-                        return None;
-                    }
-                };
+        let config_data = match self.zk_client.get_data(&ZK_CONFIG_PATH) {
+            Ok(config_data) => config_data,
+            _ => return None,
+        };
 
-                match WdrConfig::from_str(config_data) {
-                    Some(wdr_config) => Some(wdr_config),
-                    None => None,
-                }
+        let config_data = match str::from_utf8(&config_data) {
+            Ok(config_data) => config_data,
+            Err(err) => {
+                wdr_error!("{}", err);
+                return None;
             }
-            _ => None,
+        };
+
+        match WdrConfig::from_str(config_data) {
+            Some(wdr_config) => Some(wdr_config),
+            None => None,
         }
     }
 
