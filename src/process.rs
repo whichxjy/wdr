@@ -23,6 +23,7 @@ fn run_cmd_in_workspace(cmd: &str) -> IOResult<Child> {
 custom_error! {
     pub ProcessError
     Prepare = "Fail to prepare process",
+    Run = "Fail to run process"
 }
 
 pub type ProcessResult<T> = Result<T, ProcessError>;
@@ -30,11 +31,16 @@ pub type ProcessResult<T> = Result<T, ProcessError>;
 pub struct Process<'a> {
     name: &'a str,
     resource: &'a Resource,
+    cmd_child: Option<Child>,
 }
 
 impl<'a> Process<'a> {
     pub fn new(name: &'a str, resource: &'a Resource) -> Self {
-        Process { name, resource }
+        Process {
+            name,
+            resource,
+            cmd_child: None,
+        }
     }
 
     pub fn prepare(&self) -> ProcessResult<()> {
@@ -100,7 +106,28 @@ impl<'a> Process<'a> {
         Ok(())
     }
 
-    pub fn run(&self) {
-        run_cmd_in_workspace("echo what").expect("failed to execute process");
+    pub fn run(&mut self) -> ProcessResult<()> {
+        match run_cmd_in_workspace("echo what") {
+            Ok(cmd_child) => {
+                self.cmd_child = Some(cmd_child);
+                Ok(())
+            }
+            _ => Err(ProcessError::Run),
+        }
+    }
+
+    pub fn kill(&mut self) {
+        let cmd_child = match &mut self.cmd_child {
+            Some(cmd_child) => cmd_child,
+            None => {
+                wdr_warn!("No cmd child for {}", self.name);
+                return;
+            }
+        };
+
+        match cmd_child.kill() {
+            Ok(()) => wdr_info!("Process {} was killed", self.name),
+            Err(err) => wdr_error!("Fail to kill {}: {}", self.name, err),
+        };
     }
 }
