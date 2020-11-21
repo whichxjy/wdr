@@ -23,8 +23,16 @@ impl Manager {
             return;
         }
 
-        if let Some(wdr_config) = read_config() {
-            wdr_debug!("Read config: {:?}", wdr_config);
+        let wdr_config = match read_config() {
+            Some(wdr_config) => wdr_config,
+            None => {
+                wdr_error!("Fail to read config:");
+                return;
+            }
+        };
+        wdr_debug!("Read config: {:?}", wdr_config);
+
+        if wdr_config != self.prev_wdr_config {
             self.run_processes(&wdr_config);
         }
     }
