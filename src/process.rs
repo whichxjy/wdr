@@ -31,7 +31,7 @@ custom_error! {
 pub type ProcessResult<T> = Result<T, ProcessError>;
 
 pub struct Process<'a> {
-    config: &'a ProcessConfig,
+    pub config: &'a ProcessConfig,
     cmd_child: Option<Child>,
 }
 

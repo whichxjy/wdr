@@ -1,23 +1,26 @@
 use crossbeam::channel::tick;
+use std::collections::HashMap;
 use std::str;
 use std::time::Duration;
 use zookeeper::CreateMode;
 
 use crate::config::ZK_CONFIG_PATH;
-use crate::model::WdrConfig;
+use crate::model::{ProcessConfig, WdrConfig};
 use crate::process::Process;
 use crate::zk::ZkClient;
 
-pub struct Manager {
+pub struct Manager<'a> {
     zk_client: ZkClient,
     prev_wdr_config: WdrConfig,
+    processes: HashMap<&'a str, Process<'a>>,
 }
 
-impl Manager {
+impl<'a> Manager<'a> {
     pub fn new(zk_client: ZkClient) -> Self {
         Manager {
             zk_client,
             prev_wdr_config: WdrConfig::default(),
+            processes: HashMap::new(),
         }
     }
 
@@ -38,7 +41,7 @@ impl Manager {
             wdr_debug!("Read config: {:?}", wdr_config);
 
             if wdr_config != self.prev_wdr_config {
-                self.flush_all_processes(&wdr_config);
+                self.flush_all_processes(&wdr_config.configs);
                 self.prev_wdr_config = wdr_config;
             }
         }
@@ -76,18 +79,34 @@ impl Manager {
         }
     }
 
-    fn flush_all_processes(&self, wdr_config: &WdrConfig) {
-        for process_config in &wdr_config.configs {
-            let mut p = Process::new(process_config);
+    fn flush_all_processes(&mut self, process_configs: &[ProcessConfig]) {
+        for process_config in process_configs {
+            let mut need_stop_old_process = false;
+            let mut old_process: Option<&mut Process> = None;
 
-            if let Err(err) = p.prepare() {
+            if let Some(p) = self.processes.get_mut(process_config.name.as_str()) {
+                if process_config.version == p.config.version {
+                    return;
+                }
+
+                old_process = Some(p);
+                need_stop_old_process = true;
+            }
+
+            let mut new_process = Process::new(process_config);
+
+            if let Err(err) = new_process.prepare() {
                 wdr_error!("{}", err);
                 continue;
             }
 
-            if let Err(err) = p.run() {
+            if let Err(err) = new_process.run() {
                 wdr_error!("{}", err);
                 continue;
+            }
+
+            if need_stop_old_process {
+                old_process.unwrap().stop();
             }
         }
     }
