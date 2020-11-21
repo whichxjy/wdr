@@ -1,40 +1,15 @@
-use crate::config::{WORKSPACE_PATH, ZK_CONFIG_PATH, ZK_CONNECT_STRING};
+use crate::config::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
 use crate::model::WdrConfig;
+use crate::process::Process;
 use crate::zk::ZkClient;
-use reqwest::blocking::Client as HttpClient;
-use std::fs::OpenOptions;
-use std::io::Write;
-use std::os::unix::fs::OpenOptionsExt;
-use std::process::Command;
 use std::str;
-use url::Url;
 use zookeeper::{CreateMode, ZkError};
 
-pub struct Manager {
-    http_client: HttpClient,
-}
-
-macro_rules! run_cmd_in_workspace {
-    ($x:expr) => {
-        let (program, option) = if cfg!(target_os = "windows") {
-            ("cmd", "/C")
-        } else {
-            ("sh", "-c")
-        };
-
-        Command::new(program)
-            .current_dir(WORKSPACE_PATH.to_str().unwrap())
-            .args(&[option, $x])
-            .spawn()
-            .expect("failed to execute process")
-    };
-}
+pub struct Manager {}
 
 impl Manager {
     pub fn new() -> Self {
-        Manager {
-            http_client: HttpClient::new(),
-        }
+        Manager {}
     }
 
     pub fn run(&self) {
@@ -61,7 +36,9 @@ impl Manager {
                 {
                     "name": "hello",
                     "version": "1",
-                    "resource": "https://whichxjy.com/hello"
+                    "resource": {
+                        "link": "https://whichxjy.com/hello"
+                    }
                 }
            ]
         }"#;
@@ -120,67 +97,14 @@ impl Manager {
 
     fn run_processes(&self, wdr_config: WdrConfig) {
         for process_config in wdr_config.configs {
-            self.download(&process_config.resource);
+            let p = Process::new(&process_config.resource);
+
+            if let Err(err) = p.prepare() {
+                wdr_error!("{}", err);
+                continue;
+            }
+
+            p.run();
         }
-    }
-
-    fn download(&self, resource: &str) {
-        wdr_info!("Start download from {}", resource);
-
-        let url = match Url::parse(resource) {
-            Ok(url) => url,
-            Err(err) => {
-                wdr_error!("Invalid URL: {}", err);
-                return;
-            }
-        };
-
-        let segments = url.path_segments().map(|c| c.collect::<Vec<_>>()).unwrap();
-        let filename = match segments.last() {
-            Some(filename) => filename,
-            None => {
-                wdr_error!("Fail to parse filename from {}", resource);
-                return;
-            }
-        };
-
-        let full_path = WORKSPACE_PATH.join(filename);
-        wdr_info!("Full path: {}", full_path.to_str().unwrap());
-
-        let res = match self.http_client.get(resource).send() {
-            Ok(res) => res,
-            Err(err) => {
-                wdr_error!("Fail to download: {}", err);
-                return;
-            }
-        };
-
-        let mut file = match OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o777)
-            .open(&full_path)
-        {
-            Ok(file) => file,
-            Err(err) => {
-                wdr_error!("Fail to open file {}: {}", filename, err);
-                return;
-            }
-        };
-
-        let bytes = match res.bytes() {
-            Ok(bytes) => bytes,
-            Err(err) => {
-                wdr_error!("Fail to read bytes from response: {}", err);
-                return;
-            }
-        };
-
-        if let Err(err) = file.write_all(&bytes) {
-            wdr_error!("Fail to write bytes to file: {}", err);
-        }
-
-        run_cmd_in_workspace!("echo what");
     }
 }

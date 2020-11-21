@@ -101,6 +101,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea221b5284a47e40033bf9b66f35f984ec0ea2931eb03505246cd27a963f981b"
 
 [[package]]
+name = "custom_error"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51ac5e99a7fea3ee8a03fa4721a47e2efd3fbb38358fc61192a54d4c6f866c12"
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1273,6 +1279,7 @@ dependencies = [
 name = "wdr"
 version = "0.1.0"
 dependencies = [
+ "custom_error",
  "env_logger",
  "lazy_static",
  "log",
