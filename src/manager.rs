@@ -1,4 +1,4 @@
-use crate::config::WORKSPACE_PATH;
+use crate::config::{WORKSPACE_PATH, ZK_CONFIG_PATH};
 use crate::model::WdrConfig;
 use crate::zk::ZkClient;
 use reqwest::blocking::Client as HttpClient;
@@ -57,8 +57,6 @@ impl Manager {
             Err(err) => return Err(err),
         };
 
-        let path = "/config";
-
         let data = r#"
         {
             "configs": [
@@ -70,15 +68,15 @@ impl Manager {
            ]
         }"#;
 
-        if !zk_client.exists(path) {
+        if !zk_client.exists(&ZK_CONFIG_PATH) {
             // Create a new node.
-            if let Err(err) = zk_client.create(path, CreateMode::Persistent) {
+            if let Err(err) = zk_client.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
                 return Err(err);
             }
         }
 
         // Write config.
-        if let Err(err) = zk_client.set_data(path, data.as_bytes().to_vec()) {
+        if let Err(err) = zk_client.set_data(&ZK_CONFIG_PATH, data.as_bytes().to_vec()) {
             return Err(err);
         }
 
@@ -96,18 +94,16 @@ impl Manager {
             }
         };
 
-        let path = "/config";
-
-        if !zk_client.exists(path) {
+        if !zk_client.exists(&ZK_CONFIG_PATH) {
             // Create a new node.
-            if let Err(err) = zk_client.create(path, CreateMode::Persistent) {
+            if let Err(err) = zk_client.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
                 wdr_error!("{}", err);
                 return None;
             }
         }
 
         // Read config.
-        match zk_client.get_data(path) {
+        match zk_client.get_data(&ZK_CONFIG_PATH) {
             Ok(config_data) => {
                 let config_data = match str::from_utf8(&config_data) {
                     Ok(config_data) => config_data,
