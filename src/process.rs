@@ -1,26 +1,23 @@
 use crate::config::WORKSPACE_PATH;
 use crate::model::Resource;
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::{Result as IOResult, Write};
 use std::os::unix::fs::OpenOptionsExt;
-use std::process::Command;
+use std::process::{Child, Command};
 use std::str;
 use url::Url;
 
-macro_rules! run_cmd_in_workspace {
-    ($x:expr) => {
-        let (program, option) = if cfg!(target_os = "windows") {
-            ("cmd", "/C")
-        } else {
-            ("sh", "-c")
-        };
-
-        Command::new(program)
-            .current_dir(WORKSPACE_PATH.to_str().unwrap())
-            .args(&[option, $x])
-            .spawn()
-            .expect("failed to execute process")
+fn run_cmd_in_workspace(cmd: &str) -> IOResult<Child> {
+    let (program, option) = if cfg!(target_os = "windows") {
+        ("cmd", "/C")
+    } else {
+        ("sh", "-c")
     };
+
+    Command::new(program)
+        .current_dir(WORKSPACE_PATH.to_str().unwrap())
+        .args(&[option, cmd])
+        .spawn()
 }
 
 custom_error! {
@@ -104,6 +101,6 @@ impl<'a> Process<'a> {
     }
 
     pub fn run(&self) {
-        run_cmd_in_workspace!("echo what");
+        run_cmd_in_workspace("echo what").expect("failed to execute process");
     }
 }
