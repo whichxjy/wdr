@@ -8,6 +8,8 @@ lazy_static! {
         fs::create_dir_all(workspace_path).expect("Fail to create downloaded directory");
         workspace_path
     };
+    // zk connect string
+    pub static ref ZK_CONNECT_STRING: &'static str = "localhost:2181";
     // zk config path
     pub static ref ZK_CONFIG_PATH: &'static str = "/config";
 }

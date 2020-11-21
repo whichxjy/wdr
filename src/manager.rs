@@ -1,4 +1,4 @@
-use crate::config::{WORKSPACE_PATH, ZK_CONFIG_PATH};
+use crate::config::{WORKSPACE_PATH, ZK_CONFIG_PATH, ZK_CONNECT_STRING};
 use crate::model::WdrConfig;
 use crate::zk::ZkClient;
 use reqwest::blocking::Client as HttpClient;
@@ -50,9 +50,7 @@ impl Manager {
     }
 
     fn write_config(&self) -> Result<(), ZkError> {
-        let connect_string = "localhost:2181";
-
-        let zk_client = match ZkClient::new(connect_string) {
+        let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
             Ok(zk_client) => zk_client,
             Err(err) => return Err(err),
         };
@@ -84,9 +82,7 @@ impl Manager {
     }
 
     fn read_config(&self) -> Option<WdrConfig> {
-        let connect_string = "localhost:2181";
-
-        let zk_client = match ZkClient::new(connect_string) {
+        let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
             Ok(zk_client) => zk_client,
             Err(err) => {
                 wdr_error!("{}", err);
