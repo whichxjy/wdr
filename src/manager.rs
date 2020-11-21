@@ -14,6 +14,16 @@ pub struct Manager {
     http_client: HttpClient,
 }
 
+macro_rules! run_cmd_in_workspace {
+    ($x:expr) => {
+        Command::new("sh")
+            .current_dir(WORKSPACE_PATH.to_str().unwrap())
+            .args(&["-c", $x])
+            .spawn()
+            .expect("failed to execute process")
+    };
+}
+
 impl Manager {
     pub fn new() -> Self {
         Manager {
@@ -173,11 +183,6 @@ impl Manager {
             wdr_error!("Fail to write bytes to file: {}", err);
         }
 
-        let output = Command::new("sh")
-            .args(&["-c", "echo what"])
-            .output()
-            .expect("failed to execute process");
-
-        wdr_info!("output: {}", str::from_utf8(&output.stdout).unwrap());
+        run_cmd_in_workspace!("echo what");
     }
 }
