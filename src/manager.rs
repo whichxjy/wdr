@@ -7,11 +7,14 @@ use crate::model::WdrConfig;
 use crate::process::Process;
 use crate::zk::ZkClient;
 
-pub struct Manager {}
+#[derive(Debug, Default)]
+pub struct Manager {
+    prev_wdr_config: WdrConfig,
+}
 
 impl Manager {
     pub fn new() -> Self {
-        Manager {}
+        Default::default()
     }
 
     pub fn run(&self) {
@@ -20,9 +23,9 @@ impl Manager {
             return;
         }
 
-        if let Some(wdr_config) = self.read_config() {
+        if let Some(wdr_config) = read_config() {
             wdr_debug!("Read config: {:?}", wdr_config);
-            self.run_processes(wdr_config);
+            self.run_processes(&wdr_config);
         }
     }
 
@@ -59,45 +62,8 @@ impl Manager {
         Ok(())
     }
 
-    fn read_config(&self) -> Option<WdrConfig> {
-        let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
-            Ok(zk_client) => zk_client,
-            Err(err) => {
-                wdr_error!("{}", err);
-                return None;
-            }
-        };
-
-        if !zk_client.exists(&ZK_CONFIG_PATH) {
-            // Create a new node.
-            if let Err(err) = zk_client.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
-                wdr_error!("{}", err);
-                return None;
-            }
-        }
-
-        // Read config.
-        match zk_client.get_data(&ZK_CONFIG_PATH) {
-            Ok(config_data) => {
-                let config_data = match str::from_utf8(&config_data) {
-                    Ok(config_data) => config_data,
-                    Err(err) => {
-                        wdr_error!("{}", err);
-                        return None;
-                    }
-                };
-
-                match WdrConfig::from_str(config_data) {
-                    Some(wdr_config) => Some(wdr_config),
-                    None => None,
-                }
-            }
-            _ => None,
-        }
-    }
-
-    fn run_processes(&self, wdr_config: WdrConfig) {
-        for process_config in wdr_config.configs {
+    fn run_processes(&self, wdr_config: &WdrConfig) {
+        for process_config in &wdr_config.configs {
             let mut p = Process::new(
                 &process_config.name,
                 &process_config.resource,
@@ -119,5 +85,42 @@ impl Manager {
 
             p.kill();
         }
+    }
+}
+
+fn read_config() -> Option<WdrConfig> {
+    let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
+        Ok(zk_client) => zk_client,
+        Err(err) => {
+            wdr_error!("{}", err);
+            return None;
+        }
+    };
+
+    if !zk_client.exists(&ZK_CONFIG_PATH) {
+        // Create a new node.
+        if let Err(err) = zk_client.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
+            wdr_error!("{}", err);
+            return None;
+        }
+    }
+
+    // Read config.
+    match zk_client.get_data(&ZK_CONFIG_PATH) {
+        Ok(config_data) => {
+            let config_data = match str::from_utf8(&config_data) {
+                Ok(config_data) => config_data,
+                Err(err) => {
+                    wdr_error!("{}", err);
+                    return None;
+                }
+            };
+
+            match WdrConfig::from_str(config_data) {
+                Some(wdr_config) => Some(wdr_config),
+                None => None,
+            }
+        }
+        _ => None,
     }
 }
