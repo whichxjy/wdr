@@ -27,7 +27,7 @@ impl Manager {
         // Check config every 10 seconds.
         let ticker = tick(Duration::new(10, 0));
 
-        for _ in 0..10 {
+        for _ in 0..5 {
             ticker.recv().unwrap();
 
             let wdr_config = match read_config() {
@@ -40,13 +40,13 @@ impl Manager {
             wdr_debug!("Read config: {:?}", wdr_config);
 
             if wdr_config != self.prev_wdr_config {
-                self.run_processes(&wdr_config);
+                self.flush_all_processes(&wdr_config);
                 self.prev_wdr_config = wdr_config;
             }
         }
     }
 
-    fn run_processes(&self, wdr_config: &WdrConfig) {
+    fn flush_all_processes(&self, wdr_config: &WdrConfig) {
         for process_config in &wdr_config.configs {
             let mut p = Process::new(
                 &process_config.name,
