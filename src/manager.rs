@@ -1,9 +1,11 @@
+use std::str;
+use std::{thread, time};
+use zookeeper::{CreateMode, ZkError};
+
 use crate::config::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
 use crate::model::WdrConfig;
 use crate::process::Process;
 use crate::zk::ZkClient;
-use std::str;
-use zookeeper::{CreateMode, ZkError};
 
 pub struct Manager {}
 
@@ -106,7 +108,11 @@ impl Manager {
 
             if let Err(err) = p.run() {
                 wdr_error!("{}", err);
+                continue;
             }
+
+            let time = time::Duration::from_millis(10000);
+            thread::sleep(time);
 
             p.kill();
         }

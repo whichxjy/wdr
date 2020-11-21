@@ -1,13 +1,14 @@
-use crate::config::WORKSPACE_PATH;
-use crate::model::Resource;
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::{Result as IOResult, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::process::{Child, Command};
 use std::str;
 use url::Url;
 
-fn run_cmd_in_workspace(cmd: &str) -> IOResult<Child> {
+use crate::config::WORKSPACE_PATH;
+use crate::model::Resource;
+
+fn run_cmd_in_workspace(cmd: &str, log_file: File) -> IOResult<Child> {
     let (program, option) = if cfg!(target_os = "windows") {
         ("cmd", "/C")
     } else {
@@ -16,6 +17,7 @@ fn run_cmd_in_workspace(cmd: &str) -> IOResult<Child> {
 
     Command::new(program)
         .current_dir(WORKSPACE_PATH.to_str().unwrap())
+        .stdout(log_file)
         .args(&[option, cmd])
         .spawn()
 }
@@ -101,13 +103,27 @@ impl<'a> Process<'a> {
             return Err(ProcessError::Prepare);
         }
 
-        wdr_info!("{} is prepared now", self.name);
+        wdr_info!("{} is ready now", self.name);
 
         Ok(())
     }
 
     pub fn run(&mut self) -> ProcessResult<()> {
-        match run_cmd_in_workspace("echo what") {
+        let log_path = WORKSPACE_PATH.join(format!("{}.log", self.name));
+
+        let log_file = match OpenOptions::new().write(true).create(true).open(&log_path) {
+            Ok(log_file) => log_file,
+            Err(err) => {
+                wdr_error!(
+                    "Fail to open log file {}: {}",
+                    log_path.to_str().unwrap(),
+                    err
+                );
+                return Err(ProcessError::Run);
+            }
+        };
+
+        match run_cmd_in_workspace("./hello", log_file) {
             Ok(cmd_child) => {
                 self.cmd_child = Some(cmd_child);
                 Ok(())
