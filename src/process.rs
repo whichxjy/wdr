@@ -1,6 +1,5 @@
 use crate::config::WORKSPACE_PATH;
 use crate::model::Resource;
-use reqwest::blocking::Client as HttpClient;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
@@ -64,9 +63,7 @@ impl<'a> Process<'a> {
         let full_path = WORKSPACE_PATH.join(filename);
         wdr_info!("Full path of target: {}", full_path.to_str().unwrap());
 
-        let http_client = HttpClient::new();
-
-        let res = match http_client.get(&self.resource.link).send() {
+        let res = match reqwest::blocking::get(&self.resource.link) {
             Ok(res) => res,
             Err(err) => {
                 wdr_error!("Fail to download: {}", err);
