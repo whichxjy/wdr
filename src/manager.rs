@@ -78,11 +78,7 @@ impl Manager {
 
     fn flush_all_processes(&self, wdr_config: &WdrConfig) {
         for process_config in &wdr_config.configs {
-            let mut p = Process::new(
-                &process_config.name,
-                &process_config.resource,
-                &process_config.cmd,
-            );
+            let mut p = Process::new(process_config);
 
             if let Err(err) = p.prepare() {
                 wdr_error!("{}", err);

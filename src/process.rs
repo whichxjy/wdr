@@ -6,6 +6,7 @@ use std::str;
 use url::Url;
 
 use crate::config::WORKSPACE_PATH;
+use crate::model::ProcessConfig;
 
 fn run_cmd_in_workspace(cmd: &str, log_file: File) -> IOResult<Child> {
     let (program, option) = if cfg!(target_os = "windows") {
@@ -30,26 +31,22 @@ custom_error! {
 pub type ProcessResult<T> = Result<T, ProcessError>;
 
 pub struct Process<'a> {
-    name: &'a str,
-    resource: &'a str,
-    cmd: &'a str,
+    config: &'a ProcessConfig,
     cmd_child: Option<Child>,
 }
 
 impl<'a> Process<'a> {
-    pub fn new(name: &'a str, resource: &'a str, cmd: &'a str) -> Self {
+    pub fn new(config: &'a ProcessConfig) -> Self {
         Process {
-            name,
-            resource,
-            cmd,
+            config,
             cmd_child: None,
         }
     }
 
     pub fn prepare(&self) -> ProcessResult<()> {
-        wdr_info!("Start download from {}", self.resource);
+        wdr_info!("Start download from {}", self.config.resource);
 
-        let url = match Url::parse(self.resource) {
+        let url = match Url::parse(&self.config.resource) {
             Ok(url) => url,
             Err(err) => {
                 wdr_error!("Invalid URL: {}", err);
@@ -61,7 +58,7 @@ impl<'a> Process<'a> {
         let filename = match segments.last() {
             Some(filename) => filename,
             None => {
-                wdr_error!("Fail to parse filename from {}", self.resource);
+                wdr_error!("Fail to parse filename from {}", &self.config.resource);
                 return Err(ProcessError::Prepare);
             }
         };
@@ -69,7 +66,7 @@ impl<'a> Process<'a> {
         let full_path = WORKSPACE_PATH.join(filename);
         wdr_info!("Full path of target: {}", full_path.to_str().unwrap());
 
-        let res = match reqwest::blocking::get(self.resource) {
+        let res = match reqwest::blocking::get(&self.config.resource) {
             Ok(res) => res,
             Err(err) => {
                 wdr_error!("Fail to download: {}", err);
@@ -104,13 +101,13 @@ impl<'a> Process<'a> {
             return Err(ProcessError::Prepare);
         }
 
-        wdr_info!("{} is ready now", self.name);
+        wdr_info!("Process {} is ready now", self.config.name);
 
         Ok(())
     }
 
     pub fn run(&mut self) -> ProcessResult<()> {
-        let log_path = WORKSPACE_PATH.join(format!("{}.log", self.name));
+        let log_path = WORKSPACE_PATH.join(format!("{}.log", self.config.name));
 
         let log_file = match OpenOptions::new().write(true).create(true).open(&log_path) {
             Ok(log_file) => log_file,
@@ -124,7 +121,7 @@ impl<'a> Process<'a> {
             }
         };
 
-        match run_cmd_in_workspace(self.cmd, log_file) {
+        match run_cmd_in_workspace(&self.config.cmd, log_file) {
             Ok(cmd_child) => {
                 self.cmd_child = Some(cmd_child);
                 Ok(())
@@ -134,18 +131,18 @@ impl<'a> Process<'a> {
     }
 
     #[allow(unused)]
-    pub fn kill(&mut self) {
+    pub fn stop(&mut self) {
         let cmd_child = match &mut self.cmd_child {
             Some(cmd_child) => cmd_child,
             None => {
-                wdr_warn!("No cmd child for {}", self.name);
+                wdr_warn!("No cmd child for {}", self.config.name);
                 return;
             }
         };
 
         match cmd_child.kill() {
-            Ok(()) => wdr_info!("Process {} was killed", self.name),
-            Err(err) => wdr_error!("Fail to kill {}: {}", self.name, err),
+            Ok(()) => wdr_info!("Process {} was killed", self.config.name),
+            Err(err) => wdr_error!("Fail to kill {}: {}", self.config.name, err),
         };
     }
 }
