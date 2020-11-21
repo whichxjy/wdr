@@ -11,13 +11,8 @@ pub struct WdrConfig {
 pub struct ProcessConfig {
     pub name: String,
     pub version: String,
-    pub resource: Resource,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-pub struct Resource {
-    pub link: String,
+    pub resource: String,
+    pub cmd: String,
 }
 
 impl WdrConfig {

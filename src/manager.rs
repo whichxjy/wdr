@@ -38,9 +38,8 @@ impl Manager {
                 {
                     "name": "hello",
                     "version": "1",
-                    "resource": {
-                        "link": "https://whichxjy.com/hello"
-                    }
+                    "resource": "https://whichxjy.com/hello",
+                    "cmd": "./hello"
                 }
            ]
         }"#;
@@ -99,7 +98,11 @@ impl Manager {
 
     fn run_processes(&self, wdr_config: WdrConfig) {
         for process_config in wdr_config.configs {
-            let mut p = Process::new(&process_config.name, &process_config.resource);
+            let mut p = Process::new(
+                &process_config.name,
+                &process_config.resource,
+                &process_config.cmd,
+            );
 
             if let Err(err) = p.prepare() {
                 wdr_error!("{}", err);

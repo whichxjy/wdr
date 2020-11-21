@@ -6,7 +6,6 @@ use std::str;
 use url::Url;
 
 use crate::config::WORKSPACE_PATH;
-use crate::model::Resource;
 
 fn run_cmd_in_workspace(cmd: &str, log_file: File) -> IOResult<Child> {
     let (program, option) = if cfg!(target_os = "windows") {
@@ -32,23 +31,25 @@ pub type ProcessResult<T> = Result<T, ProcessError>;
 
 pub struct Process<'a> {
     name: &'a str,
-    resource: &'a Resource,
+    resource: &'a str,
+    cmd: &'a str,
     cmd_child: Option<Child>,
 }
 
 impl<'a> Process<'a> {
-    pub fn new(name: &'a str, resource: &'a Resource) -> Self {
+    pub fn new(name: &'a str, resource: &'a str, cmd: &'a str) -> Self {
         Process {
             name,
             resource,
+            cmd,
             cmd_child: None,
         }
     }
 
     pub fn prepare(&self) -> ProcessResult<()> {
-        wdr_info!("Start download from {}", self.resource.link);
+        wdr_info!("Start download from {}", self.resource);
 
-        let url = match Url::parse(&self.resource.link) {
+        let url = match Url::parse(self.resource) {
             Ok(url) => url,
             Err(err) => {
                 wdr_error!("Invalid URL: {}", err);
@@ -60,7 +61,7 @@ impl<'a> Process<'a> {
         let filename = match segments.last() {
             Some(filename) => filename,
             None => {
-                wdr_error!("Fail to parse filename from {}", self.resource.link);
+                wdr_error!("Fail to parse filename from {}", self.resource);
                 return Err(ProcessError::Prepare);
             }
         };
@@ -68,7 +69,7 @@ impl<'a> Process<'a> {
         let full_path = WORKSPACE_PATH.join(filename);
         wdr_info!("Full path of target: {}", full_path.to_str().unwrap());
 
-        let res = match reqwest::blocking::get(&self.resource.link) {
+        let res = match reqwest::blocking::get(self.resource) {
             Ok(res) => res,
             Err(err) => {
                 wdr_error!("Fail to download: {}", err);
@@ -123,7 +124,7 @@ impl<'a> Process<'a> {
             }
         };
 
-        match run_cmd_in_workspace("./hello", log_file) {
+        match run_cmd_in_workspace(self.cmd, log_file) {
             Ok(cmd_child) => {
                 self.cmd_child = Some(cmd_child);
                 Ok(())
