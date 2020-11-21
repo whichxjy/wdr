@@ -97,7 +97,7 @@ impl Manager {
 
     fn run_processes(&self, wdr_config: WdrConfig) {
         for process_config in wdr_config.configs {
-            let p = Process::new(&process_config.resource);
+            let p = Process::new(&process_config.name, &process_config.resource);
 
             if let Err(err) = p.prepare() {
                 wdr_error!("{}", err);

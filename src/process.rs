@@ -32,12 +32,13 @@ custom_error! {
 pub type ProcessResult<T> = Result<T, ProcessError>;
 
 pub struct Process<'a> {
+    name: &'a str,
     resource: &'a Resource,
 }
 
 impl<'a> Process<'a> {
-    pub fn new(resource: &'a Resource) -> Self {
-        Process { resource }
+    pub fn new(name: &'a str, resource: &'a Resource) -> Self {
+        Process { name, resource }
     }
 
     pub fn prepare(&self) -> ProcessResult<()> {
@@ -61,7 +62,7 @@ impl<'a> Process<'a> {
         };
 
         let full_path = WORKSPACE_PATH.join(filename);
-        wdr_info!("Full path: {}", full_path.to_str().unwrap());
+        wdr_info!("Full path of target: {}", full_path.to_str().unwrap());
 
         let http_client = HttpClient::new();
 
@@ -99,6 +100,8 @@ impl<'a> Process<'a> {
             wdr_error!("Fail to write bytes to file: {}", err);
             return Err(ProcessError::Prepare);
         }
+
+        wdr_info!("{} is prepared now", self.name);
 
         Ok(())
     }
