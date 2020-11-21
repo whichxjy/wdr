@@ -6,7 +6,7 @@ pub struct WdrConfig {
     pub configs: Vec<ProcessConfig>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Default, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct ProcessConfig {
     pub name: String,

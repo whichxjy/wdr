@@ -30,13 +30,13 @@ custom_error! {
 
 pub type ProcessResult<T> = Result<T, ProcessError>;
 
-pub struct Process<'a> {
-    pub config: &'a ProcessConfig,
+pub struct Process {
+    pub config: ProcessConfig,
     cmd_child: Option<Child>,
 }
 
-impl<'a> Process<'a> {
-    pub fn new(config: &'a ProcessConfig) -> Self {
+impl Process {
+    pub fn new(config: ProcessConfig) -> Self {
         Process {
             config,
             cmd_child: None,
@@ -124,13 +124,13 @@ impl<'a> Process<'a> {
         match run_cmd_in_workspace(&self.config.cmd, log_file) {
             Ok(cmd_child) => {
                 self.cmd_child = Some(cmd_child);
+                wdr_info!("Process {} is running", self.config.name);
                 Ok(())
             }
             _ => Err(ProcessError::Run),
         }
     }
 
-    #[allow(unused)]
     pub fn stop(&mut self) {
         let cmd_child = match &mut self.cmd_child {
             Some(cmd_child) => cmd_child,

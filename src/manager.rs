@@ -9,13 +9,13 @@ use crate::model::{ProcessConfig, WdrConfig};
 use crate::process::Process;
 use crate::zk::ZkClient;
 
-pub struct Manager<'a> {
+pub struct Manager {
     zk_client: ZkClient,
     prev_wdr_config: WdrConfig,
-    processes: HashMap<&'a str, Process<'a>>,
+    processes: HashMap<String, Process>,
 }
 
-impl<'a> Manager<'a> {
+impl Manager {
     pub fn new(zk_client: ZkClient) -> Self {
         Manager {
             zk_client,
@@ -95,7 +95,7 @@ impl<'a> Manager<'a> {
             old_process.stop();
         }
 
-        let mut new_process = Process::new(process_config);
+        let mut new_process = Process::new(process_config.to_owned());
 
         if let Err(err) = new_process.prepare() {
             wdr_error!("{}", err);
@@ -106,5 +106,8 @@ impl<'a> Manager<'a> {
             wdr_error!("{}", err);
             return;
         }
+
+        self.processes
+            .insert(process_config.name.to_owned(), new_process);
     }
 }
