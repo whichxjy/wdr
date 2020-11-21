@@ -28,7 +28,7 @@ impl<'a> Manager<'a> {
         // Check config every 10 seconds.
         let ticker = tick(Duration::new(10, 0));
 
-        for _ in 0..5 {
+        loop {
             ticker.recv().unwrap();
 
             let wdr_config = match self.read_config() {
@@ -81,33 +81,30 @@ impl<'a> Manager<'a> {
 
     fn flush_all_processes(&mut self, process_configs: &[ProcessConfig]) {
         for process_config in process_configs {
-            let mut need_stop_old_process = false;
-            let mut old_process: Option<&mut Process> = None;
+            self.flush_process(process_config);
+        }
+    }
 
-            if let Some(p) = self.processes.get_mut(process_config.name.as_str()) {
-                if process_config.version == p.config.version {
-                    return;
-                }
-
-                old_process = Some(p);
-                need_stop_old_process = true;
+    fn flush_process(&mut self, process_config: &ProcessConfig) {
+        if let Some(old_process) = self.processes.get_mut(process_config.name.as_str()) {
+            if process_config.version == old_process.config.version {
+                return;
             }
 
-            let mut new_process = Process::new(process_config);
+            // Stop old process.
+            old_process.stop();
+        }
 
-            if let Err(err) = new_process.prepare() {
-                wdr_error!("{}", err);
-                continue;
-            }
+        let mut new_process = Process::new(process_config);
 
-            if let Err(err) = new_process.run() {
-                wdr_error!("{}", err);
-                continue;
-            }
+        if let Err(err) = new_process.prepare() {
+            wdr_error!("{}", err);
+            return;
+        }
 
-            if need_stop_old_process {
-                old_process.unwrap().stop();
-            }
+        if let Err(err) = new_process.run() {
+            wdr_error!("{}", err);
+            return;
         }
     }
 }
