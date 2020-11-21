@@ -21,6 +21,6 @@ use manager::Manager;
 fn main() {
     env_logger::init();
 
-    let manager = Manager::new();
+    let mut manager = Manager::new();
     manager.run();
 }

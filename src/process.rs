@@ -133,6 +133,7 @@ impl<'a> Process<'a> {
         }
     }
 
+    #[allow(unused)]
     pub fn kill(&mut self) {
         let cmd_child = match &mut self.cmd_child {
             Some(cmd_child) => cmd_child,

@@ -1,5 +1,6 @@
+use crossbeam::channel::tick;
 use std::str;
-use std::{thread, time};
+use std::time::Duration;
 use zookeeper::{CreateMode, ZkError};
 
 use crate::config::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
@@ -17,57 +18,32 @@ impl Manager {
         Default::default()
     }
 
-    pub fn run(&self) {
-        if let Err(err) = self.write_config() {
+    pub fn run(&mut self) {
+        if let Err(err) = write_config() {
             wdr_error!("Fail to write config: {}", err);
             return;
         }
 
-        let wdr_config = match read_config() {
-            Some(wdr_config) => wdr_config,
-            None => {
-                wdr_error!("Fail to read config:");
-                return;
-            }
-        };
-        wdr_debug!("Read config: {:?}", wdr_config);
+        // Check config every 10 seconds.
+        let ticker = tick(Duration::new(10, 0));
 
-        if wdr_config != self.prev_wdr_config {
-            self.run_processes(&wdr_config);
-        }
-    }
+        for _ in 0..10 {
+            ticker.recv().unwrap();
 
-    fn write_config(&self) -> Result<(), ZkError> {
-        let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
-            Ok(zk_client) => zk_client,
-            Err(err) => return Err(err),
-        };
-
-        let data = r#"
-        {
-            "configs": [
-                {
-                    "name": "hello",
-                    "version": "1",
-                    "resource": "https://whichxjy.com/hello",
-                    "cmd": "./hello"
+            let wdr_config = match read_config() {
+                Some(wdr_config) => wdr_config,
+                None => {
+                    wdr_error!("Fail to read config:");
+                    continue;
                 }
-           ]
-        }"#;
+            };
+            wdr_debug!("Read config: {:?}", wdr_config);
 
-        if !zk_client.exists(&ZK_CONFIG_PATH) {
-            // Create a new node.
-            if let Err(err) = zk_client.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
-                return Err(err);
+            if wdr_config != self.prev_wdr_config {
+                self.run_processes(&wdr_config);
+                self.prev_wdr_config = wdr_config;
             }
         }
-
-        // Write config.
-        if let Err(err) = zk_client.set_data(&ZK_CONFIG_PATH, data.as_bytes().to_vec()) {
-            return Err(err);
-        }
-
-        Ok(())
     }
 
     fn run_processes(&self, wdr_config: &WdrConfig) {
@@ -87,13 +63,41 @@ impl Manager {
                 wdr_error!("{}", err);
                 continue;
             }
-
-            let time = time::Duration::from_millis(10000);
-            thread::sleep(time);
-
-            p.kill();
         }
     }
+}
+
+fn write_config() -> Result<(), ZkError> {
+    let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
+        Ok(zk_client) => zk_client,
+        Err(err) => return Err(err),
+    };
+
+    let data = r#"
+    {
+        "configs": [
+            {
+                "name": "hello",
+                "version": "1",
+                "resource": "https://whichxjy.com/hello",
+                "cmd": "./hello"
+            }
+       ]
+    }"#;
+
+    if !zk_client.exists(&ZK_CONFIG_PATH) {
+        // Create a new node.
+        if let Err(err) = zk_client.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
+            return Err(err);
+        }
+    }
+
+    // Write config.
+    if let Err(err) = zk_client.set_data(&ZK_CONFIG_PATH, data.as_bytes().to_vec()) {
+        return Err(err);
+    }
+
+    Ok(())
 }
 
 fn read_config() -> Option<WdrConfig> {
