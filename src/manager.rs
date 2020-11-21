@@ -16,9 +16,15 @@ pub struct Manager {
 
 macro_rules! run_cmd_in_workspace {
     ($x:expr) => {
-        Command::new("sh")
+        let (program, option) = if cfg!(target_os = "windows") {
+            ("cmd", "/C")
+        } else {
+            ("sh", "-c")
+        };
+
+        Command::new(program)
             .current_dir(WORKSPACE_PATH.to_str().unwrap())
-            .args(&["-c", $x])
+            .args(&[option, $x])
             .spawn()
             .expect("failed to execute process")
     };
