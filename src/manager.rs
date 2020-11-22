@@ -1,6 +1,7 @@
 use crossbeam::channel::tick;
 use std::collections::{HashMap, HashSet};
 use std::str;
+use std::sync::RwLock;
 use std::time::Duration;
 use zookeeper::CreateMode;
 
@@ -12,7 +13,7 @@ use crate::zk::ZkClient;
 pub struct Manager {
     zk_client: ZkClient,
     prev_wdr_config: WdrConfig,
-    processes: HashMap<String, Process>,
+    processes_lock: RwLock<HashMap<String, Process>>,
 }
 
 impl Manager {
@@ -20,7 +21,7 @@ impl Manager {
         Manager {
             zk_client,
             prev_wdr_config: WdrConfig::default(),
-            processes: HashMap::new(),
+            processes_lock: RwLock::new(HashMap::new()),
         }
     }
 
@@ -91,7 +92,12 @@ impl Manager {
     }
 
     fn flush_process(&mut self, process_config: &ProcessConfig) {
-        if let Some(old_process) = self.processes.get_mut(process_config.name.as_str()) {
+        if let Some(old_process) = self
+            .processes_lock
+            .write()
+            .unwrap()
+            .get_mut(process_config.name.as_str())
+        {
             if process_config.version == old_process.config.version {
                 return;
             }
@@ -102,6 +108,7 @@ impl Manager {
 
         let mut new_process = Process::new(process_config.to_owned());
 
+        // TODO: Retry.
         if let Err(err) = new_process.prepare() {
             wdr_error!("{}", err);
             return;
@@ -112,24 +119,33 @@ impl Manager {
             return;
         }
 
-        self.processes
+        self.processes_lock
+            .write()
+            .unwrap()
             .insert(process_config.name.to_owned(), new_process);
     }
 
     fn clear_useless_processes(&mut self, valid_process_names: HashSet<&str>) {
         let mut useless_process_names: HashSet<String> = HashSet::new();
 
-        for name in self.processes.keys() {
+        for name in self.processes_lock.read().unwrap().keys() {
             if !valid_process_names.contains(name.as_str()) {
                 useless_process_names.insert(name.to_owned());
             }
         }
 
         for useless_process_name in useless_process_names {
-            let process_to_clear = self.processes.get_mut(&useless_process_name).unwrap();
-            process_to_clear.stop();
+            self.processes_lock
+                .write()
+                .unwrap()
+                .get_mut(&useless_process_name)
+                .unwrap()
+                .stop();
 
-            self.processes.remove(&useless_process_name);
+            self.processes_lock
+                .write()
+                .unwrap()
+                .remove(&useless_process_name);
             wdr_info!("Process {} is clear", useless_process_name);
         }
     }
