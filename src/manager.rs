@@ -20,11 +20,11 @@ lazy_static! {
 
 pub struct Worker {
     pub version: String,
-    pub stop_sender: Sender<bool>,
+    pub stop_sender: Sender<()>,
 }
 
 impl Worker {
-    fn new<T: Into<String>>(version: T, stop_sender: Sender<bool>) -> Self {
+    fn new<T: Into<String>>(version: T, stop_sender: Sender<()>) -> Self {
         Worker {
             version: version.into(),
             stop_sender,
@@ -120,7 +120,7 @@ fn flush_process(process_config: ProcessConfig) {
             .get_mut(&process_config.name)
             .unwrap()
             .stop_sender
-            .send(true);
+            .send(());
     }
 
     let (stop_sender, stop_receiver) = bounded(1);
@@ -158,7 +158,7 @@ fn clear_useless_processes(valid_process_names: HashSet<String>) {
             .get_mut(&useless_process_name)
             .unwrap()
             .stop_sender
-            .send(true);
+            .send(());
 
         WORKERS_LOCK.write().unwrap().remove(&useless_process_name);
         wdr_info!("Process {} is clear", useless_process_name);

@@ -82,7 +82,7 @@ pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
     Ok(())
 }
 
-pub fn run(process_config: ProcessConfig, stop_receiver: Receiver<bool>) -> ProcessResult<()> {
+pub fn run(process_config: ProcessConfig, stop_receiver: Receiver<()>) -> ProcessResult<()> {
     let log_path = WORKSPACE_PATH.join(format!("{}.log", process_config.name));
 
     let mut cmd_child = match run_cmd_in_workspace(&process_config.cmd, &log_path) {
