@@ -1,4 +1,3 @@
-extern crate zookeeper;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -7,6 +6,8 @@ extern crate stdext;
 extern crate lazy_static;
 #[macro_use]
 extern crate custom_error;
+#[macro_use]
+extern crate crossbeam;
 
 #[macro_use]
 mod logger;

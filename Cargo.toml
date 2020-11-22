@@ -15,5 +15,6 @@ reqwest = { version = "0.10", features = ["json", "blocking"] }
 tokio = { version = "0.2", features = ["full"] }
 url = "2.2.0"
 lazy_static = "1.4.0"
+ctrlc = { version = "3.0", features = ["termination"] }
 custom_error = "1.8.0"
 crossbeam = "0.8"

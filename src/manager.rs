@@ -34,30 +34,54 @@ impl Worker {
 
 pub fn run() {
     // Check config every 5 seconds.
-    let ticker = tick(Duration::new(5, 0));
+    let check_config_ticker = tick(Duration::new(5, 0));
+
+    let (quit_sender, quit_receiver) = bounded(1);
+
+    ctrlc::set_handler(move || {
+        let _ = quit_sender.send(());
+    })
+    .expect("Error setting Ctrl-C handler");
 
     loop {
-        ticker.recv().unwrap();
+        select! {
+            // Check config.
+            recv(check_config_ticker) -> _ => {
+                let wdr_config = match read_config() {
+                    Some(wdr_config) => wdr_config,
+                    None => {
+                        wdr_error!("Fail to read config:");
+                        continue;
+                    }
+                };
+                wdr_debug!("Read config: {:?}", wdr_config);
 
-        let wdr_config = match read_config() {
-            Some(wdr_config) => wdr_config,
-            None => {
-                wdr_error!("Fail to read config:");
-                continue;
+                if wdr_config != *CURR_WDR_CONFIG_LOCK.read().unwrap() {
+                    {
+                        let mut curr_wdr_config = CURR_WDR_CONFIG_LOCK.write().unwrap();
+                        *curr_wdr_config = wdr_config;
+                    }
+
+                    let curr_wdr_config = CURR_WDR_CONFIG_LOCK.read().unwrap();
+                    flush_all_processes(curr_wdr_config.configs.clone());
+                }
             }
-        };
-        wdr_debug!("Read config: {:?}", wdr_config);
+            // Quit.
+            recv(quit_receiver) -> _ => {
+                let workers = WORKERS_LOCK
+                    .write()
+                    .unwrap();
 
-        if wdr_config != *CURR_WDR_CONFIG_LOCK.read().unwrap() {
-            {
-                let mut curr_wdr_config = CURR_WDR_CONFIG_LOCK.write().unwrap();
-                *curr_wdr_config = wdr_config;
+                for (_, worker) in workers.iter() {
+                    worker.stop_sender.send(()).unwrap();
+                }
+
+                break;
             }
-
-            let curr_wdr_config = CURR_WDR_CONFIG_LOCK.read().unwrap();
-            flush_all_processes(curr_wdr_config.configs.clone());
         }
     }
+
+    wdr_info!("Quit wdr");
 }
 
 fn read_config() -> Option<WdrConfig> {
