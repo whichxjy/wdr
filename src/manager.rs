@@ -13,7 +13,21 @@ use crate::zk::ZkClient;
 pub struct Manager {
     zk_client: ZkClient,
     prev_wdr_config: WdrConfig,
-    processes_lock: RwLock<HashMap<String, Process>>,
+    works_lock: RwLock<HashMap<String, Worker>>,
+}
+
+pub struct Worker {
+    pub process: Process,
+    pub version: String,
+}
+
+impl Worker {
+    fn new<T: Into<String>>(process: Process, version: T) -> Self {
+        Worker {
+            process,
+            version: version.into(),
+        }
+    }
 }
 
 impl Manager {
@@ -21,7 +35,7 @@ impl Manager {
         Manager {
             zk_client,
             prev_wdr_config: WdrConfig::default(),
-            processes_lock: RwLock::new(HashMap::new()),
+            works_lock: RwLock::new(HashMap::new()),
         }
     }
 
@@ -92,18 +106,18 @@ impl Manager {
     }
 
     fn flush_process(&mut self, process_config: &ProcessConfig) {
-        if let Some(old_process) = self
-            .processes_lock
+        if let Some(old_worker) = self
+            .works_lock
             .write()
             .unwrap()
             .get_mut(process_config.name.as_str())
         {
-            if process_config.version == old_process.config.version {
+            if process_config.version == old_worker.version {
                 return;
             }
 
             // Stop old process.
-            old_process.stop();
+            old_worker.process.stop();
         }
 
         let mut new_process = Process::new(process_config.to_owned());
@@ -119,30 +133,31 @@ impl Manager {
             return;
         }
 
-        self.processes_lock
-            .write()
-            .unwrap()
-            .insert(process_config.name.to_owned(), new_process);
+        self.works_lock.write().unwrap().insert(
+            process_config.name.to_owned(),
+            Worker::new(new_process, &process_config.version),
+        );
     }
 
     fn clear_useless_processes(&mut self, valid_process_names: HashSet<&str>) {
         let mut useless_process_names: HashSet<String> = HashSet::new();
 
-        for name in self.processes_lock.read().unwrap().keys() {
+        for name in self.works_lock.read().unwrap().keys() {
             if !valid_process_names.contains(name.as_str()) {
                 useless_process_names.insert(name.to_owned());
             }
         }
 
         for useless_process_name in useless_process_names {
-            self.processes_lock
+            self.works_lock
                 .write()
                 .unwrap()
                 .get_mut(&useless_process_name)
                 .unwrap()
+                .process
                 .stop();
 
-            self.processes_lock
+            self.works_lock
                 .write()
                 .unwrap()
                 .remove(&useless_process_name);
