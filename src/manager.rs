@@ -1,4 +1,4 @@
-use crossbeam::channel::tick;
+use crossbeam::channel::{bounded, tick, Sender};
 use std::collections::{HashMap, HashSet};
 use std::str;
 use std::sync::RwLock;
@@ -8,7 +8,7 @@ use zookeeper::CreateMode;
 
 use crate::config::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
 use crate::model::{ProcessConfig, WdrConfig};
-use crate::process::Process;
+use crate::process;
 use crate::zk::ZkClient;
 
 lazy_static! {
@@ -19,15 +19,15 @@ lazy_static! {
 }
 
 pub struct Worker {
-    pub process: Process,
     pub version: String,
+    pub stop_sender: Sender<bool>,
 }
 
 impl Worker {
-    fn new<T: Into<String>>(process: Process, version: T) -> Self {
+    fn new<T: Into<String>>(version: T, stop_sender: Sender<bool>) -> Self {
         Worker {
-            process,
             version: version.into(),
+            stop_sender,
         }
     }
 }
@@ -96,14 +96,14 @@ fn flush_all_processes(process_configs: Vec<ProcessConfig>) {
         valid_process_names.insert(process_config.name.to_owned());
 
         thread::spawn(move || {
-            flush_process(&process_config);
+            flush_process(process_config);
         });
     }
 
     clear_useless_processes(valid_process_names);
 }
 
-fn flush_process(process_config: &ProcessConfig) {
+fn flush_process(process_config: ProcessConfig) {
     if let Some(old_worker) = WORKERS_LOCK
         .write()
         .unwrap()
@@ -114,25 +114,31 @@ fn flush_process(process_config: &ProcessConfig) {
         }
 
         // Stop old process.
-        old_worker.process.stop();
+        let _ = WORKERS_LOCK
+            .write()
+            .unwrap()
+            .get_mut(&process_config.name)
+            .unwrap()
+            .stop_sender
+            .send(true);
     }
 
-    let mut new_process = Process::new(process_config.to_owned());
+    let (stop_sender, stop_receiver) = bounded(1);
 
     // TODO: Retry.
-    if let Err(err) = new_process.prepare() {
+    if let Err(err) = process::prepare(&process_config) {
         wdr_error!("{}", err);
         return;
     }
 
-    if let Err(err) = new_process.run() {
+    if let Err(err) = process::run(process_config.to_owned(), stop_receiver) {
         wdr_error!("{}", err);
         return;
     }
 
     WORKERS_LOCK.write().unwrap().insert(
-        process_config.name.to_owned(),
-        Worker::new(new_process, &process_config.version),
+        process_config.name,
+        Worker::new(process_config.version, stop_sender),
     );
 }
 
@@ -146,13 +152,13 @@ fn clear_useless_processes(valid_process_names: HashSet<String>) {
     }
 
     for useless_process_name in useless_process_names {
-        WORKERS_LOCK
+        let _ = WORKERS_LOCK
             .write()
             .unwrap()
             .get_mut(&useless_process_name)
             .unwrap()
-            .process
-            .stop();
+            .stop_sender
+            .send(true);
 
         WORKERS_LOCK.write().unwrap().remove(&useless_process_name);
         wdr_info!("Process {} is clear", useless_process_name);
