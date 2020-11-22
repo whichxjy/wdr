@@ -13,7 +13,7 @@ use crate::zk::ZkClient;
 pub struct Manager {
     zk_client: ZkClient,
     prev_wdr_config: WdrConfig,
-    works_lock: RwLock<HashMap<String, Worker>>,
+    workers_lock: RwLock<HashMap<String, Worker>>,
 }
 
 pub struct Worker {
@@ -35,7 +35,7 @@ impl Manager {
         Manager {
             zk_client,
             prev_wdr_config: WdrConfig::default(),
-            works_lock: RwLock::new(HashMap::new()),
+            workers_lock: RwLock::new(HashMap::new()),
         }
     }
 
@@ -107,7 +107,7 @@ impl Manager {
 
     fn flush_process(&mut self, process_config: &ProcessConfig) {
         if let Some(old_worker) = self
-            .works_lock
+            .workers_lock
             .write()
             .unwrap()
             .get_mut(process_config.name.as_str())
@@ -133,7 +133,7 @@ impl Manager {
             return;
         }
 
-        self.works_lock.write().unwrap().insert(
+        self.workers_lock.write().unwrap().insert(
             process_config.name.to_owned(),
             Worker::new(new_process, &process_config.version),
         );
@@ -142,14 +142,14 @@ impl Manager {
     fn clear_useless_processes(&mut self, valid_process_names: HashSet<&str>) {
         let mut useless_process_names: HashSet<String> = HashSet::new();
 
-        for name in self.works_lock.read().unwrap().keys() {
+        for name in self.workers_lock.read().unwrap().keys() {
             if !valid_process_names.contains(name.as_str()) {
                 useless_process_names.insert(name.to_owned());
             }
         }
 
         for useless_process_name in useless_process_names {
-            self.works_lock
+            self.workers_lock
                 .write()
                 .unwrap()
                 .get_mut(&useless_process_name)
@@ -157,7 +157,7 @@ impl Manager {
                 .process
                 .stop();
 
-            self.works_lock
+            self.workers_lock
                 .write()
                 .unwrap()
                 .remove(&useless_process_name);
