@@ -83,23 +83,21 @@ pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
 }
 
 pub fn run(process_config: ProcessConfig, stop_receiver: Receiver<bool>) -> ProcessResult<()> {
+    let log_path = WORKSPACE_PATH.join(format!("{}.log", process_config.name));
+
+    let mut cmd_child = match run_cmd_in_workspace(&process_config.cmd, &log_path) {
+        Ok(cmd_child) => cmd_child,
+        _ => return Err(ProcessError::Run),
+    };
+    wdr_info!("Process {} is running", process_config.name);
+
     thread::spawn(move || {
-        let log_path = WORKSPACE_PATH.join(format!("{}.log", process_config.name));
-
-        let mut cmd_child = match run_cmd_in_workspace(&process_config.cmd, &log_path) {
-            Ok(cmd_child) => cmd_child,
-            _ => return Err(ProcessError::Run),
-        };
-        wdr_info!("Process {} is running", process_config.name);
-
         if stop_receiver.recv().is_ok() {
             match cmd_child.kill() {
                 Ok(()) => wdr_info!("Process {} was killed", process_config.name),
                 Err(err) => wdr_error!("Fail to kill {}: {}", process_config.name, err),
             };
         }
-
-        Ok(())
     });
 
     Ok(())
