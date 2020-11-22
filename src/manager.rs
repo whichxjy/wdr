@@ -1,4 +1,4 @@
-use crossbeam::channel::{bounded, tick, Sender};
+use crossbeam::channel::{bounded, tick, unbounded, Sender};
 use std::collections::{HashMap, HashSet};
 use std::str;
 use std::sync::RwLock;
@@ -36,6 +36,7 @@ pub fn run() {
     // Check config every 5 seconds.
     let check_config_ticker = tick(Duration::new(5, 0));
 
+    let (stop_done_sender, stop_done_receiver) = unbounded();
     let (quit_sender, quit_receiver) = bounded(1);
 
     ctrlc::set_handler(move || {
@@ -63,17 +64,24 @@ pub fn run() {
                     }
 
                     let curr_wdr_config = CURR_WDR_CONFIG_LOCK.read().unwrap();
-                    flush_all_processes(curr_wdr_config.configs.clone());
+                    flush_all_processes(curr_wdr_config.configs.clone(), &stop_done_sender);
                 }
             }
             // Quit.
             recv(quit_receiver) -> _ => {
                 let workers = WORKERS_LOCK
-                    .write()
+                    .read()
                     .unwrap();
+
+                let mut worker_count = 0;
 
                 for (_, worker) in workers.iter() {
                     worker.stop_sender.send(()).unwrap();
+                    worker_count += 1;
+                }
+
+                for _ in 0..worker_count {
+                    stop_done_receiver.recv().unwrap();
                 }
 
                 break;
@@ -113,21 +121,22 @@ fn read_config() -> Option<WdrConfig> {
     }
 }
 
-fn flush_all_processes(process_configs: Vec<ProcessConfig>) {
+fn flush_all_processes(process_configs: Vec<ProcessConfig>, stop_done_sender: &Sender<()>) {
     let mut valid_process_names: HashSet<String> = HashSet::new();
 
     for process_config in process_configs {
         valid_process_names.insert(process_config.name.to_owned());
 
+        let stop_done_sender = stop_done_sender.clone();
         thread::spawn(move || {
-            flush_process(process_config);
+            flush_process(process_config, stop_done_sender);
         });
     }
 
     clear_useless_processes(valid_process_names);
 }
 
-fn flush_process(process_config: ProcessConfig) {
+fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
     if let Some(old_worker) = WORKERS_LOCK
         .write()
         .unwrap()
@@ -155,7 +164,7 @@ fn flush_process(process_config: ProcessConfig) {
         return;
     }
 
-    if let Err(err) = process::run(process_config.to_owned(), stop_receiver) {
+    if let Err(err) = process::run(process_config.to_owned(), stop_receiver, stop_done_sender) {
         wdr_error!("{}", err);
         return;
     }

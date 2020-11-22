@@ -1,4 +1,4 @@
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{Receiver, Sender};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
@@ -82,7 +82,11 @@ pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
     Ok(())
 }
 
-pub fn run(process_config: ProcessConfig, stop_receiver: Receiver<()>) -> ProcessResult<()> {
+pub fn run(
+    process_config: ProcessConfig,
+    stop_receiver: Receiver<()>,
+    stop_done_sender: Sender<()>,
+) -> ProcessResult<()> {
     let log_path = WORKSPACE_PATH.join(format!("{}.log", process_config.name));
 
     let mut cmd_child = match run_cmd_in_workspace(&process_config.cmd, &log_path) {
@@ -98,6 +102,7 @@ pub fn run(process_config: ProcessConfig, stop_receiver: Receiver<()>) -> Proces
                 Err(err) => wdr_error!("Fail to kill {}: {}", process_config.name, err),
             };
         }
+        stop_done_sender.send(()).unwrap()
     });
 
     Ok(())
