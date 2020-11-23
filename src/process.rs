@@ -38,7 +38,7 @@ pub fn prepare(process: &Process) -> Option<()> {
     };
 
     let full_path = WORKSPACE_PATH.join(filename);
-    wdr_info!("Full path of target: {}", full_path.to_str().unwrap());
+    wdr_info!("Local resource path: {}", full_path.to_str().unwrap());
 
     let res = match reqwest::blocking::get(&process.config.resource) {
         Ok(res) => res,

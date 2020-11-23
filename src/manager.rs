@@ -6,14 +6,12 @@ use std::thread;
 use std::time::Duration;
 use zookeeper::CreateMode;
 
-use crate::config::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
+use crate::config::ZK_CONFIG_PATH;
 use crate::model::{ProcessConfig, WdrConfig};
 use crate::process::{self, Process};
-use crate::zk::ZkClient;
+use crate::zk::ZK_CLIENT;
 
 lazy_static! {
-    static ref ZK_CLIENT: ZkClient =
-        ZkClient::new(&ZK_CONNECT_STRING).expect("Fail to connect to zk");
     static ref WORKERS_LOCK: RwLock<HashMap<String, Worker>> = RwLock::new(HashMap::new());
 }
 

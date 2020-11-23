@@ -1,7 +1,12 @@
-#![allow(unused)]
-
 use std::time::Duration;
 use zookeeper::{Acl, CreateMode, Stat, WatchedEvent, Watcher, ZkResult, ZooKeeper};
+
+use crate::config::ZK_CONNECT_STRING;
+
+lazy_static! {
+    pub static ref ZK_CLIENT: ZkClient =
+        ZkClient::new(&ZK_CONNECT_STRING).expect("Fail to connect to zk");
+}
 
 struct LoggingWatcher;
 impl Watcher for LoggingWatcher {
@@ -41,6 +46,7 @@ impl ZkClient {
         }
     }
 
+    #[allow(unused)]
     pub fn set_data(&self, path: &str, data: Vec<u8>) -> ZkResult<Stat> {
         self.zk.set_data(path, data, None)
     }
