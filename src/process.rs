@@ -11,22 +11,14 @@ use url::Url;
 use crate::config::WORKSPACE_PATH;
 use crate::model::ProcessConfig;
 
-custom_error! {
-    pub ProcessError
-    Prepare = "Fail to prepare process",
-    Run = "Fail to run process"
-}
-
-pub type ProcessResult<T> = Result<T, ProcessError>;
-
-pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
+pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
     wdr_info!("Start download from {}", process_config.resource);
 
     let url = match Url::parse(&process_config.resource) {
         Ok(url) => url,
         Err(err) => {
             wdr_error!("Invalid URL: {}", err);
-            return Err(ProcessError::Prepare);
+            return None;
         }
     };
 
@@ -35,7 +27,7 @@ pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
         Some(filename) => filename,
         None => {
             wdr_error!("Fail to parse filename from {}", process_config.resource);
-            return Err(ProcessError::Prepare);
+            return None;
         }
     };
 
@@ -46,7 +38,7 @@ pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
         Ok(res) => res,
         Err(err) => {
             wdr_error!("Fail to download: {}", err);
-            return Err(ProcessError::Prepare);
+            return None;
         }
     };
 
@@ -60,7 +52,7 @@ pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
         Ok(file) => file,
         Err(err) => {
             wdr_error!("Fail to open file {}: {}", filename, err);
-            return Err(ProcessError::Prepare);
+            return None;
         }
     };
 
@@ -68,30 +60,30 @@ pub fn prepare(process_config: &ProcessConfig) -> ProcessResult<()> {
         Ok(bytes) => bytes,
         Err(err) => {
             wdr_error!("Fail to read bytes from response: {}", err);
-            return Err(ProcessError::Prepare);
+            return None;
         }
     };
 
     if let Err(err) = file.write_all(&bytes) {
         wdr_error!("Fail to write bytes to file: {}", err);
-        return Err(ProcessError::Prepare);
+        return None;
     }
 
     wdr_info!("Process {} is ready now", process_config.name);
 
-    Ok(())
+    Some(())
 }
 
 pub fn run(
     process_config: ProcessConfig,
     stop_receiver: Receiver<()>,
     stop_done_sender: Sender<()>,
-) -> ProcessResult<()> {
+) -> Option<()> {
     let log_path = WORKSPACE_PATH.join(format!("{}.log", process_config.name));
 
     let mut cmd_child = match run_cmd_in_workspace(&process_config.cmd, &log_path) {
-        Ok(cmd_child) => cmd_child,
-        _ => return Err(ProcessError::Run),
+        Some(cmd_child) => cmd_child,
+        None => return None,
     };
     wdr_info!("Process {} is running", process_config.name);
 
@@ -105,10 +97,10 @@ pub fn run(
         stop_done_sender.send(()).unwrap()
     });
 
-    Ok(())
+    Some(())
 }
 
-fn run_cmd_in_workspace<P: AsRef<Path>>(cmd: &str, log_path: P) -> ProcessResult<Child> {
+fn run_cmd_in_workspace<P: AsRef<Path>>(cmd: &str, log_path: P) -> Option<Child> {
     let (program, option) = if cfg!(target_os = "windows") {
         ("cmd", "/C")
     } else {
@@ -119,7 +111,7 @@ fn run_cmd_in_workspace<P: AsRef<Path>>(cmd: &str, log_path: P) -> ProcessResult
         Ok(log_file) => log_file,
         Err(err) => {
             wdr_error!("Fail to open log file: {}", err);
-            return Err(ProcessError::Run);
+            return None;
         }
     };
 
@@ -129,7 +121,7 @@ fn run_cmd_in_workspace<P: AsRef<Path>>(cmd: &str, log_path: P) -> ProcessResult
         .args(&[option, cmd])
         .spawn()
     {
-        Ok(cmd_child) => Ok(cmd_child),
-        _ => Err(ProcessError::Run),
+        Ok(cmd_child) => Some(cmd_child),
+        _ => None,
     }
 }

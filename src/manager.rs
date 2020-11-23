@@ -40,7 +40,7 @@ pub fn run() {
     let (quit_sender, quit_receiver) = bounded(1);
 
     ctrlc::set_handler(move || {
-        let _ = quit_sender.send(());
+        quit_sender.send(()).unwrap();
     })
     .expect("Error setting Ctrl-C handler");
 
@@ -147,25 +147,26 @@ fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
         }
 
         // Stop old process.
-        let _ = WORKERS_LOCK
+        WORKERS_LOCK
             .write()
             .unwrap()
             .get_mut(&process_config.name)
             .unwrap()
             .stop_sender
-            .send(());
+            .send(())
+            .unwrap();
     }
 
     let (stop_sender, stop_receiver) = bounded(1);
 
     // TODO: Retry.
-    if let Err(err) = process::prepare(&process_config) {
-        wdr_error!("{}", err);
+    if process::prepare(&process_config).is_none() {
+        wdr_error!("Fail to prepare process {}", process_config.name);
         return;
     }
 
-    if let Err(err) = process::run(process_config.to_owned(), stop_receiver, stop_done_sender) {
-        wdr_error!("{}", err);
+    if process::run(process_config.to_owned(), stop_receiver, stop_done_sender).is_none() {
+        wdr_error!("Fail to run process {}", process_config.name);
         return;
     }
 
@@ -185,13 +186,14 @@ fn clear_useless_processes(valid_process_names: HashSet<String>) {
     }
 
     for useless_process_name in useless_process_names {
-        let _ = WORKERS_LOCK
+        WORKERS_LOCK
             .write()
             .unwrap()
             .get_mut(&useless_process_name)
             .unwrap()
             .stop_sender
-            .send(());
+            .send(())
+            .unwrap();
 
         WORKERS_LOCK.write().unwrap().remove(&useless_process_name);
         wdr_info!("Process {} is clear", useless_process_name);

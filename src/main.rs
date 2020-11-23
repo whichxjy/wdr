@@ -5,8 +5,6 @@ extern crate stdext;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
-extern crate custom_error;
-#[macro_use]
 extern crate crossbeam;
 
 #[macro_use]
