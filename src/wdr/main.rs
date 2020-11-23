@@ -5,10 +5,9 @@ extern crate crossbeam;
 #[macro_use]
 extern crate fnlog;
 
-#[macro_use]
-mod setting;
 mod manager;
 mod process;
+mod setting;
 
 fn main() {
     env_logger::init();
