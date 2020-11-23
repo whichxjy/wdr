@@ -7,9 +7,9 @@ use std::process::{Child, Command};
 use std::str;
 use std::thread;
 use url::Url;
+use wdrlib::ProcessConfig;
 
 use crate::config::WORKSPACE_PATH;
-use crate::model::ProcessConfig;
 
 pub struct Process {
     pub config: ProcessConfig,

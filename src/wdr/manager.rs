@@ -6,8 +6,9 @@ use std::thread;
 use std::time::Duration;
 use zookeeper::CreateMode;
 
+use wdrlib::{ProcessConfig, WdrConfig};
+
 use crate::config::ZK_CONFIG_PATH;
-use crate::model::{ProcessConfig, WdrConfig};
 use crate::process::{self, Process};
 use crate::zk::ZK_CLIENT;
 
