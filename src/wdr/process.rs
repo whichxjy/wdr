@@ -7,7 +7,7 @@ use std::process::{Child, Command};
 use std::str;
 use std::thread;
 use url::Url;
-use wdrlib::ProcessConfig;
+use wdrlib::model::ProcessConfig;
 
 use crate::config::WORKSPACE_PATH;
 

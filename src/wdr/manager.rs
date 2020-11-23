@@ -4,9 +4,8 @@ use std::str;
 use std::sync::RwLock;
 use std::thread;
 use std::time::Duration;
+use wdrlib::model::{ProcessConfig, WdrConfig};
 use zookeeper::CreateMode;
-
-use wdrlib::{ProcessConfig, WdrConfig};
 
 use crate::config::ZK_CONFIG_PATH;
 use crate::process::{self, Process};
