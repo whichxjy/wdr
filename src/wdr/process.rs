@@ -9,7 +9,7 @@ use std::thread;
 use url::Url;
 use wdrlib::model::ProcessConfig;
 
-use crate::config::WORKSPACE_PATH;
+use crate::setting::WORKSPACE_PATH;
 
 pub struct Process {
     pub config: ProcessConfig,

@@ -6,7 +6,7 @@ extern crate crossbeam;
 extern crate wdrlib;
 
 #[macro_use]
-mod config;
+mod setting;
 mod manager;
 mod process;
 

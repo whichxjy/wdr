@@ -8,9 +8,9 @@ use wdrlib::model::{ProcessConfig, WdrConfig};
 use wdrlib::zk::ZkClient;
 use zookeeper::CreateMode;
 
-use crate::config::ZK_CONFIG_PATH;
-use crate::config::ZK_CONNECT_STRING;
 use crate::process::{self, Process};
+use crate::setting::ZK_CONFIG_PATH;
+use crate::setting::ZK_CONNECT_STRING;
 
 lazy_static! {
     pub static ref ZK_CLIENT: ZkClient =
