@@ -18,12 +18,12 @@ pub struct Process {
 }
 
 pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
-    wdr_info!("Start download from {}", process_config.resource);
+    fn_info!("Start download from {}", process_config.resource);
 
     let url = match Url::parse(&process_config.resource) {
         Ok(url) => url,
         Err(err) => {
-            wdr_error!("Invalid URL: {}", err);
+            fn_error!("Invalid URL: {}", err);
             return None;
         }
     };
@@ -32,18 +32,18 @@ pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
     let filename = match segments.last() {
         Some(filename) => filename,
         None => {
-            wdr_error!("Fail to parse filename from {}", process_config.resource);
+            fn_error!("Fail to parse filename from {}", process_config.resource);
             return None;
         }
     };
 
     let full_path = WORKSPACE_PATH.join(filename);
-    wdr_info!("Local resource path: {}", full_path.to_str().unwrap());
+    fn_info!("Local resource path: {}", full_path.to_str().unwrap());
 
     let res = match reqwest::blocking::get(&process_config.resource) {
         Ok(res) => res,
         Err(err) => {
-            wdr_error!("Fail to download: {}", err);
+            fn_error!("Fail to download: {}", err);
             return None;
         }
     };
@@ -57,7 +57,7 @@ pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
     {
         Ok(file) => file,
         Err(err) => {
-            wdr_error!("Fail to open file {}: {}", filename, err);
+            fn_error!("Fail to open file {}: {}", filename, err);
             return None;
         }
     };
@@ -65,17 +65,17 @@ pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
     let bytes = match res.bytes() {
         Ok(bytes) => bytes,
         Err(err) => {
-            wdr_error!("Fail to read bytes from response: {}", err);
+            fn_error!("Fail to read bytes from response: {}", err);
             return None;
         }
     };
 
     if let Err(err) = file.write_all(&bytes) {
-        wdr_error!("Fail to write bytes to file: {}", err);
+        fn_error!("Fail to write bytes to file: {}", err);
         return None;
     }
 
-    wdr_info!("Process {} is ready now", process_config.name);
+    fn_info!("Process {} is ready now", process_config.name);
 
     Some(())
 }
@@ -87,13 +87,13 @@ pub fn run(process: Process) -> Option<()> {
         Some(cmd_child) => cmd_child,
         None => return None,
     };
-    wdr_info!("Process {} is running", process.config.name);
+    fn_info!("Process {} is running", process.config.name);
 
     thread::spawn(move || {
         if process.stop_receiver.recv().is_ok() {
             match cmd_child.kill() {
-                Ok(()) => wdr_info!("Process {} was killed", process.config.name),
-                Err(err) => wdr_error!("Fail to kill {}: {}", process.config.name, err),
+                Ok(()) => fn_info!("Process {} was killed", process.config.name),
+                Err(err) => fn_error!("Fail to kill {}: {}", process.config.name, err),
             };
         }
         process.stop_done_sender.send(()).unwrap()
@@ -112,7 +112,7 @@ fn run_cmd_in_workspace<P: AsRef<Path>>(cmd: &str, log_path: P) -> Option<Child>
     let log_file = match OpenOptions::new().write(true).create(true).open(log_path) {
         Ok(log_file) => log_file,
         Err(err) => {
-            wdr_error!("Fail to open log file: {}", err);
+            fn_error!("Fail to open log file: {}", err);
             return None;
         }
     };

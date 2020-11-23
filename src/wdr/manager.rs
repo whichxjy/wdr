@@ -51,11 +51,11 @@ pub fn run() {
                 let wdr_config = match read_config() {
                     Some(wdr_config) => wdr_config,
                     None => {
-                        wdr_error!("Fail to read config:");
+                        fn_error!("Fail to read config:");
                         continue;
                     }
                 };
-                wdr_debug!("Read config: {:?}", wdr_config);
+                fn_debug!("Read config: {:?}", wdr_config);
 
                 if wdr_config != prev_wdr_config {
                     flush_all_processes(wdr_config.configs.clone(), &stop_done_sender);
@@ -84,14 +84,14 @@ pub fn run() {
         }
     }
 
-    wdr_info!("Quit wdr");
+    fn_info!("Quit wdr");
 }
 
 fn read_config() -> Option<WdrConfig> {
     if !ZK_CLIENT.exists(&ZK_CONFIG_PATH) {
         // Create a new node.
         if let Err(err) = ZK_CLIENT.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
-            wdr_error!("{}", err);
+            fn_error!("{}", err);
             return None;
         }
     }
@@ -105,7 +105,7 @@ fn read_config() -> Option<WdrConfig> {
     let config_data = match str::from_utf8(&config_data) {
         Ok(config_data) => config_data,
         Err(err) => {
-            wdr_error!("{}", err);
+            fn_error!("{}", err);
             return None;
         }
     };
@@ -162,12 +162,12 @@ fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
 
     // TODO: Retry.
     if process::prepare(&new_process.config).is_none() {
-        wdr_error!("Fail to prepare process {}", process_config.name);
+        fn_error!("Fail to prepare process {}", process_config.name);
         return;
     }
 
     if process::run(new_process).is_none() {
-        wdr_error!("Fail to run process {}", process_config.name);
+        fn_error!("Fail to run process {}", process_config.name);
         return;
     }
 
@@ -197,6 +197,6 @@ fn clear_useless_processes(valid_process_names: HashSet<String>) {
             .unwrap();
 
         WORKERS_LOCK.write().unwrap().remove(&useless_process_name);
-        wdr_info!("Process {} is clear", useless_process_name);
+        fn_info!("Process {} is clear", useless_process_name);
     }
 }

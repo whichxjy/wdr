@@ -3,7 +3,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate crossbeam;
 #[macro_use]
-extern crate wdrlib;
+extern crate fnlog;
 
 #[macro_use]
 mod setting;

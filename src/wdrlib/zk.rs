@@ -1,11 +1,10 @@
-use super::*;
 use std::time::Duration;
 use zookeeper::{Acl, CreateMode, Stat, WatchedEvent, Watcher, ZkResult, ZooKeeper};
 
 struct LoggingWatcher;
 impl Watcher for LoggingWatcher {
     fn handle(&self, event: WatchedEvent) {
-        wdr_info!("{:?}", event)
+        fn_info!("{:?}", event)
     }
 }
 
