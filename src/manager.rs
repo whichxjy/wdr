@@ -8,7 +8,7 @@ use zookeeper::CreateMode;
 
 use crate::config::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
 use crate::model::{ProcessConfig, WdrConfig};
-use crate::process;
+use crate::process::{self, Process};
 use crate::zk::ZkClient;
 
 lazy_static! {
@@ -159,13 +159,19 @@ fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
 
     let (stop_sender, stop_receiver) = bounded(1);
 
+    let new_process = Process {
+        config: process_config.clone(),
+        stop_receiver,
+        stop_done_sender,
+    };
+
     // TODO: Retry.
-    if process::prepare(&process_config).is_none() {
+    if process::prepare(&new_process).is_none() {
         wdr_error!("Fail to prepare process {}", process_config.name);
         return;
     }
 
-    if process::run(process_config.to_owned(), stop_receiver, stop_done_sender).is_none() {
+    if process::run(new_process).is_none() {
         wdr_error!("Fail to run process {}", process_config.name);
         return;
     }

@@ -11,10 +11,16 @@ use url::Url;
 use crate::config::WORKSPACE_PATH;
 use crate::model::ProcessConfig;
 
-pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
-    wdr_info!("Start download from {}", process_config.resource);
+pub struct Process {
+    pub config: ProcessConfig,
+    pub stop_receiver: Receiver<()>,
+    pub stop_done_sender: Sender<()>,
+}
 
-    let url = match Url::parse(&process_config.resource) {
+pub fn prepare(process: &Process) -> Option<()> {
+    wdr_info!("Start download from {}", process.config.resource);
+
+    let url = match Url::parse(&process.config.resource) {
         Ok(url) => url,
         Err(err) => {
             wdr_error!("Invalid URL: {}", err);
@@ -26,7 +32,7 @@ pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
     let filename = match segments.last() {
         Some(filename) => filename,
         None => {
-            wdr_error!("Fail to parse filename from {}", process_config.resource);
+            wdr_error!("Fail to parse filename from {}", process.config.resource);
             return None;
         }
     };
@@ -34,7 +40,7 @@ pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
     let full_path = WORKSPACE_PATH.join(filename);
     wdr_info!("Full path of target: {}", full_path.to_str().unwrap());
 
-    let res = match reqwest::blocking::get(&process_config.resource) {
+    let res = match reqwest::blocking::get(&process.config.resource) {
         Ok(res) => res,
         Err(err) => {
             wdr_error!("Fail to download: {}", err);
@@ -69,32 +75,28 @@ pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
         return None;
     }
 
-    wdr_info!("Process {} is ready now", process_config.name);
+    wdr_info!("Process {} is ready now", process.config.name);
 
     Some(())
 }
 
-pub fn run(
-    process_config: ProcessConfig,
-    stop_receiver: Receiver<()>,
-    stop_done_sender: Sender<()>,
-) -> Option<()> {
-    let log_path = WORKSPACE_PATH.join(format!("{}.log", process_config.name));
+pub fn run(process: Process) -> Option<()> {
+    let log_path = WORKSPACE_PATH.join(format!("{}.log", process.config.name));
 
-    let mut cmd_child = match run_cmd_in_workspace(&process_config.cmd, &log_path) {
+    let mut cmd_child = match run_cmd_in_workspace(&process.config.cmd, &log_path) {
         Some(cmd_child) => cmd_child,
         None => return None,
     };
-    wdr_info!("Process {} is running", process_config.name);
+    wdr_info!("Process {} is running", process.config.name);
 
     thread::spawn(move || {
-        if stop_receiver.recv().is_ok() {
+        if process.stop_receiver.recv().is_ok() {
             match cmd_child.kill() {
-                Ok(()) => wdr_info!("Process {} was killed", process_config.name),
-                Err(err) => wdr_error!("Fail to kill {}: {}", process_config.name, err),
+                Ok(()) => wdr_info!("Process {} was killed", process.config.name),
+                Err(err) => wdr_error!("Fail to kill {}: {}", process.config.name, err),
             };
         }
-        stop_done_sender.send(()).unwrap()
+        process.stop_done_sender.send(()).unwrap()
     });
 
     Some(())
