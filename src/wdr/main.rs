@@ -9,7 +9,6 @@ extern crate wdrlib;
 mod config;
 mod manager;
 mod process;
-mod zk;
 
 fn main() {
     env_logger::init();

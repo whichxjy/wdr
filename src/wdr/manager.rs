@@ -5,13 +5,16 @@ use std::sync::RwLock;
 use std::thread;
 use std::time::Duration;
 use wdrlib::model::{ProcessConfig, WdrConfig};
+use wdrlib::zk::ZkClient;
 use zookeeper::CreateMode;
 
 use crate::config::ZK_CONFIG_PATH;
+use crate::config::ZK_CONNECT_STRING;
 use crate::process::{self, Process};
-use crate::zk::ZK_CLIENT;
 
 lazy_static! {
+    pub static ref ZK_CLIENT: ZkClient =
+        ZkClient::new(&ZK_CONNECT_STRING).expect("Fail to connect to zk");
     static ref WORKERS_LOCK: RwLock<HashMap<String, Worker>> = RwLock::new(HashMap::new());
 }
 

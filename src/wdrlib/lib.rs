@@ -1,4 +1,5 @@
 pub mod model;
+pub mod zk;
 
 use log::*;
 use stdext::*;
