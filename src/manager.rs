@@ -14,7 +14,6 @@ use crate::zk::ZkClient;
 lazy_static! {
     static ref ZK_CLIENT: ZkClient =
         ZkClient::new(&ZK_CONNECT_STRING).expect("Fail to connect to zk");
-    static ref CURR_WDR_CONFIG_LOCK: RwLock<WdrConfig> = RwLock::new(WdrConfig::default());
     static ref WORKERS_LOCK: RwLock<HashMap<String, Worker>> = RwLock::new(HashMap::new());
 }
 
@@ -33,6 +32,8 @@ impl Worker {
 }
 
 pub fn run() {
+    let mut prev_wdr_config = WdrConfig::default();
+
     // Check config every 5 seconds.
     let check_config_ticker = tick(Duration::new(5, 0));
 
@@ -57,14 +58,9 @@ pub fn run() {
                 };
                 wdr_debug!("Read config: {:?}", wdr_config);
 
-                if wdr_config != *CURR_WDR_CONFIG_LOCK.read().unwrap() {
-                    {
-                        let mut curr_wdr_config = CURR_WDR_CONFIG_LOCK.write().unwrap();
-                        *curr_wdr_config = wdr_config;
-                    }
-
-                    let curr_wdr_config = CURR_WDR_CONFIG_LOCK.read().unwrap();
-                    flush_all_processes(curr_wdr_config.configs.clone(), &stop_done_sender);
+                if wdr_config != prev_wdr_config {
+                    flush_all_processes(wdr_config.configs.clone(), &stop_done_sender);
+                    prev_wdr_config = wdr_config;
                 }
             }
             // Quit.
@@ -127,7 +123,7 @@ fn flush_all_processes(process_configs: Vec<ProcessConfig>, stop_done_sender: &S
     for process_config in process_configs {
         valid_process_names.insert(process_config.name.to_owned());
 
-        let stop_done_sender = stop_done_sender.clone();
+        let stop_done_sender = stop_done_sender.to_owned();
         thread::spawn(move || {
             flush_process(process_config, stop_done_sender);
         });
