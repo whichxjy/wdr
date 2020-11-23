@@ -17,10 +17,10 @@ pub struct Process {
     pub stop_done_sender: Sender<()>,
 }
 
-pub fn prepare(process: &Process) -> Option<()> {
-    wdr_info!("Start download from {}", process.config.resource);
+pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
+    wdr_info!("Start download from {}", process_config.resource);
 
-    let url = match Url::parse(&process.config.resource) {
+    let url = match Url::parse(&process_config.resource) {
         Ok(url) => url,
         Err(err) => {
             wdr_error!("Invalid URL: {}", err);
@@ -32,7 +32,7 @@ pub fn prepare(process: &Process) -> Option<()> {
     let filename = match segments.last() {
         Some(filename) => filename,
         None => {
-            wdr_error!("Fail to parse filename from {}", process.config.resource);
+            wdr_error!("Fail to parse filename from {}", process_config.resource);
             return None;
         }
     };
@@ -40,7 +40,7 @@ pub fn prepare(process: &Process) -> Option<()> {
     let full_path = WORKSPACE_PATH.join(filename);
     wdr_info!("Local resource path: {}", full_path.to_str().unwrap());
 
-    let res = match reqwest::blocking::get(&process.config.resource) {
+    let res = match reqwest::blocking::get(&process_config.resource) {
         Ok(res) => res,
         Err(err) => {
             wdr_error!("Fail to download: {}", err);
@@ -75,7 +75,7 @@ pub fn prepare(process: &Process) -> Option<()> {
         return None;
     }
 
-    wdr_info!("Process {} is ready now", process.config.name);
+    wdr_info!("Process {} is ready now", process_config.name);
 
     Some(())
 }

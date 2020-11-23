@@ -31,8 +31,6 @@ impl Worker {
 
 pub fn run() {
     let mut prev_wdr_config = WdrConfig::default();
-
-    // Check config every 5 seconds.
     let check_config_ticker = tick(Duration::new(5, 0));
 
     let (stop_done_sender, stop_done_receiver) = unbounded();
@@ -45,7 +43,7 @@ pub fn run() {
 
     loop {
         select! {
-            // Check config.
+            // Check config every 5 seconds.
             recv(check_config_ticker) -> _ => {
                 let wdr_config = match read_config() {
                     Some(wdr_config) => wdr_config,
@@ -160,7 +158,7 @@ fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
     };
 
     // TODO: Retry.
-    if process::prepare(&new_process).is_none() {
+    if process::prepare(&new_process.config).is_none() {
         wdr_error!("Fail to prepare process {}", process_config.name);
         return;
     }
