@@ -210,6 +210,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fnlog"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ae335cc3ca04f94d9a091de0bb32ae84c59d2020af5e09abbe9c604105a48c0"
+dependencies = [
+ "log",
+ "stdext",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1390,6 +1400,7 @@ dependencies = [
  "crossbeam",
  "ctrlc",
  "env_logger",
+ "fnlog",
  "lazy_static",
  "log",
  "reqwest",
