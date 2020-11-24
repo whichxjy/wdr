@@ -12,7 +12,7 @@ use crate::process::{self, Process};
 use crate::setting::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
 
 lazy_static! {
-    pub static ref ZK_CLIENT: ZkClient =
+    static ref ZK_CLIENT: ZkClient =
         ZkClient::new(&ZK_CONNECT_STRING).expect("Fail to connect to zk");
     static ref WORKERS_LOCK: RwLock<HashMap<String, Worker>> = RwLock::new(HashMap::new());
 }
