@@ -3,10 +3,10 @@ extern crate lazy_static;
 #[macro_use]
 extern crate fnlog;
 
+mod info;
 mod manager;
 mod process;
 mod setting;
-mod info;
 
 use setting::get_wdr_node_name;
 use wdrlib::zk_status_path;

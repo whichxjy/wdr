@@ -19,6 +19,13 @@ pub struct Process {
     pub stop_done_sender: Sender<()>,
 }
 
+impl Process {
+    pub fn set_state(&self, state: State) {
+        let mut process_state = self.state_lock.write().unwrap();
+        *process_state = state;
+    }
+}
+
 pub enum State {
     Init,
     Downloading,
@@ -27,13 +34,11 @@ pub enum State {
     Stopped,
 }
 
-pub fn prepare(process: &mut Process) -> Option<()> {
-    let process_config = process.config.to_owned();
+pub fn prepare(process: &Process) -> Option<()> {
+    fn_info!("Start download from {}", process.config.resource);
+    process.set_state(State::Downloading);
 
-    fn_info!("Start download from {}", process_config.resource);
-    set_state(process, State::Downloading);
-
-    let url = match Url::parse(&process_config.resource) {
+    let url = match Url::parse(&process.config.resource) {
         Ok(url) => url,
         Err(err) => {
             fn_error!("Invalid URL: {}", err);
@@ -45,7 +50,7 @@ pub fn prepare(process: &mut Process) -> Option<()> {
     let filename = match segments.last() {
         Some(filename) => filename,
         None => {
-            fn_error!("Fail to parse filename from {}", process_config.resource);
+            fn_error!("Fail to parse filename from {}", process.config.resource);
             return None;
         }
     };
@@ -53,7 +58,7 @@ pub fn prepare(process: &mut Process) -> Option<()> {
     let full_path = WORKSPACE_PATH.join(filename);
     fn_info!("Local resource path: {}", full_path.to_str().unwrap());
 
-    let res = match reqwest::blocking::get(&process_config.resource) {
+    let res = match reqwest::blocking::get(&process.config.resource) {
         Ok(res) => res,
         Err(err) => {
             fn_error!("Fail to download: {}", err);
@@ -88,8 +93,8 @@ pub fn prepare(process: &mut Process) -> Option<()> {
         return None;
     }
 
-    fn_info!("Process {} is ready now", process_config.name);
-    set_state(process, State::Ready);
+    fn_info!("Process {} is ready now", process.config.name);
+    process.set_state(State::Ready);
 
     Some(())
 }
@@ -102,6 +107,7 @@ pub fn run(process: Process) -> Option<()> {
         None => return None,
     };
     fn_info!("Process {} is running", process.config.name);
+    process.set_state(State::Running);
 
     thread::spawn(move || {
         if process.stop_receiver.recv().is_ok() {
@@ -110,6 +116,7 @@ pub fn run(process: Process) -> Option<()> {
                 Err(err) => fn_error!("Fail to kill {}: {}", process.config.name, err),
             };
         }
+        process.set_state(State::Stopped);
         process.stop_done_sender.send(()).unwrap()
     });
 
@@ -140,9 +147,4 @@ fn run_cmd_in_workspace<P: AsRef<Path>>(cmd: &str, log_path: P) -> Option<Child>
         Ok(cmd_child) => Some(cmd_child),
         _ => None,
     }
-}
-
-pub fn set_state(process: &mut Process, state: State) {
-    let mut process_state = process.state_lock.write().unwrap();
-    *process_state = state;
 }
