@@ -92,7 +92,7 @@ fn read_config() -> Option<WdrConfig> {
     if !ZK_CLIENT.exists(&ZK_CONFIG_PATH) {
         // Create a new node.
         if let Err(err) = ZK_CLIENT.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
-            fn_error!("{}", err);
+            fn_error!("Fail to create zk config path: {}", err);
             return None;
         }
     }
@@ -106,7 +106,7 @@ fn read_config() -> Option<WdrConfig> {
     let config_data = match str::from_utf8(&config_data) {
         Ok(config_data) => config_data,
         Err(err) => {
-            fn_error!("{}", err);
+            fn_error!("Fail to parse config data: {}", err);
             return None;
         }
     };
