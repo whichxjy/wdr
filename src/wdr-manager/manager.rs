@@ -1,7 +1,8 @@
 use wdrlib::zk::ZkClient;
+use wdrlib::ZK_CONFIG_PATH;
 use zookeeper::{CreateMode, ZkError};
 
-use crate::setting::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
+use crate::setting::ZK_CONNECT_STRING;
 
 pub fn write_config() -> Result<(), ZkError> {
     let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {

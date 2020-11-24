@@ -6,10 +6,11 @@ use std::thread;
 use std::time::Duration;
 use wdrlib::config::{ProcessConfig, WdrConfig};
 use wdrlib::zk::ZkClient;
+use wdrlib::ZK_CONFIG_PATH;
 use zookeeper::CreateMode;
 
 use crate::process::{self, Process};
-use crate::setting::{ZK_CONFIG_PATH, ZK_CONNECT_STRING};
+use crate::setting::ZK_CONNECT_STRING;
 
 lazy_static! {
     static ref ZK_CLIENT: ZkClient =
