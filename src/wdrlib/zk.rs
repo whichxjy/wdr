@@ -20,15 +20,29 @@ impl ZkClient {
         }
     }
 
-    pub fn create(&self, path: &str, mode: CreateMode) -> ZkResult<String> {
-        self.zk
-            .create(path, vec![], Acl::open_unsafe().clone(), mode)
+    pub fn create(&self, path: &str) -> ZkResult<String> {
+        self.zk.create(
+            path,
+            vec![],
+            Acl::open_unsafe().clone(),
+            CreateMode::Persistent,
+        )
     }
 
     pub fn exists(&self, path: &str) -> bool {
         match self.zk.exists(path, false) {
             Ok(stat) => stat.is_some(),
             _ => false,
+        }
+    }
+
+    pub fn ensure(&self, path: &str) -> ZkResult<()> {
+        match self.exists(path) {
+            true => Ok(()),
+            false => match self.create(path) {
+                Err(err) => Err(err),
+                _ => Ok(()),
+            },
         }
     }
 
@@ -40,6 +54,9 @@ impl ZkClient {
     }
 
     pub fn set_data(&self, path: &str, data: Vec<u8>) -> ZkResult<Stat> {
-        self.zk.set_data(path, data, None)
+        match self.ensure(path) {
+            Ok(()) => self.zk.set_data(path, data, None),
+            Err(err) => Err(err),
+        }
     }
 }

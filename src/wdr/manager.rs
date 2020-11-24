@@ -9,7 +9,6 @@ use wdrlib::config::{ProcessConfig, WdrConfig};
 use wdrlib::info::{ProcessInfo, State};
 use wdrlib::zk::ZkClient;
 use wdrlib::{zk_node_path, ZK_CONFIG_PATH};
-use zookeeper::CreateMode;
 
 use crate::event::listen_event;
 use crate::process::{self, Process};
@@ -39,12 +38,9 @@ pub fn run() {
     let node_path = zk_node_path!(get_wdr_node_name());
 
     // Ensure the node path exists.
-    if !ZK_CLIENT.exists(&ZK_CONFIG_PATH) {
-        // Create a new node.
-        if let Err(err) = ZK_CLIENT.create(&node_path, CreateMode::Persistent) {
-            fn_error!("Fail to create zk node path {}: {}", node_path, err);
-            return;
-        }
+    if let Err(err) = ZK_CLIENT.ensure(&node_path) {
+        fn_error!("Fail to create zk node path {}: {}", node_path, err);
+        return;
     }
 
     let mut prev_wdr_config = WdrConfig::default();

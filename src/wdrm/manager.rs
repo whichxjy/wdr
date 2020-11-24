@@ -1,6 +1,6 @@
 use wdrlib::zk::ZkClient;
 use wdrlib::ZK_CONFIG_PATH;
-use zookeeper::{CreateMode, ZkError};
+use zookeeper::ZkError;
 
 use crate::setting::ZK_CONNECT_STRING;
 
@@ -30,7 +30,7 @@ pub fn write_config() -> Result<(), ZkError> {
 
     if !zk_client.exists(&ZK_CONFIG_PATH) {
         // Create a new node.
-        if let Err(err) = zk_client.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
+        if let Err(err) = zk_client.create(&ZK_CONFIG_PATH) {
             return Err(err);
         }
     }
