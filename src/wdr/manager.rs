@@ -10,7 +10,7 @@ use wdrlib::zk::ZkClient;
 use wdrlib::{zk_node_path, ZK_CONFIG_PATH};
 use zookeeper::CreateMode;
 
-use crate::process::{self, Process};
+use crate::process::{self, Process, State};
 use crate::setting::{get_wdr_node_name, ZK_CONNECT_STRING};
 
 lazy_static! {
@@ -158,14 +158,15 @@ fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
 
     let (stop_sender, stop_receiver) = bounded(1);
 
-    let new_process = Process {
+    let mut new_process = Process {
         config: process_config.clone(),
+        state_lock: RwLock::new(State::Init),
         stop_receiver,
         stop_done_sender,
     };
 
     // TODO: Retry.
-    if process::prepare(&new_process.config).is_none() {
+    if process::prepare(&mut new_process).is_none() {
         fn_error!("Fail to prepare process {}", process_config.name);
         return;
     }

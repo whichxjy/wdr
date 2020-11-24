@@ -5,6 +5,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::str;
+use std::sync::RwLock;
 use std::thread;
 use url::Url;
 use wdrlib::config::ProcessConfig;
@@ -13,12 +14,24 @@ use crate::setting::WORKSPACE_PATH;
 
 pub struct Process {
     pub config: ProcessConfig,
+    pub state_lock: RwLock<State>,
     pub stop_receiver: Receiver<()>,
     pub stop_done_sender: Sender<()>,
 }
 
-pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
+pub enum State {
+    Init,
+    Downloading,
+    Ready,
+    Running,
+    Stopped,
+}
+
+pub fn prepare(process: &mut Process) -> Option<()> {
+    let process_config = process.config.to_owned();
+
     fn_info!("Start download from {}", process_config.resource);
+    set_state(process, State::Downloading);
 
     let url = match Url::parse(&process_config.resource) {
         Ok(url) => url,
@@ -76,6 +89,7 @@ pub fn prepare(process_config: &ProcessConfig) -> Option<()> {
     }
 
     fn_info!("Process {} is ready now", process_config.name);
+    set_state(process, State::Ready);
 
     Some(())
 }
@@ -126,4 +140,9 @@ fn run_cmd_in_workspace<P: AsRef<Path>>(cmd: &str, log_path: P) -> Option<Child>
         Ok(cmd_child) => Some(cmd_child),
         _ => None,
     }
+}
+
+pub fn set_state(process: &mut Process, state: State) {
+    let mut process_state = process.state_lock.write().unwrap();
+    *process_state = state;
 }
