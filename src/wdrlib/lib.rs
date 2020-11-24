@@ -13,15 +13,15 @@ lazy_static! {
 }
 
 #[macro_export]
-macro_rules! zk_status_path {
+macro_rules! zk_node_path {
     ($node_name:expr) => {
-        format!("/status/{}", $node_name)
+        format!("/node/{}", $node_name)
     };
 }
 
 #[macro_export]
-macro_rules! zk_node_path {
+macro_rules! zk_node_info_path {
     ($node_name:expr) => {
-        format!("/node/{}", $node_name)
+        format!("/info/{}", $node_name)
     };
 }

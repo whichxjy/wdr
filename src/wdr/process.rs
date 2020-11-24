@@ -9,13 +9,14 @@ use std::sync::RwLock;
 use std::thread;
 use url::Url;
 use wdrlib::config::ProcessConfig;
-use wdrlib::info::State;
+use wdrlib::info::{ProcessInfo, State};
 
 use crate::setting::WORKSPACE_PATH;
 
 pub struct Process {
     pub config: ProcessConfig,
     pub state_lock: RwLock<State>,
+    pub process_info_sender: Sender<ProcessInfo>,
     pub stop_receiver: Receiver<()>,
     pub stop_done_sender: Sender<()>,
 }
@@ -23,7 +24,14 @@ pub struct Process {
 impl Process {
     pub fn set_state(&self, state: State) {
         let mut process_state = self.state_lock.write().unwrap();
-        *process_state = state;
+        *process_state = state.clone();
+        self.process_info_sender
+            .send(ProcessInfo {
+                name: self.config.name.clone(),
+                version: self.config.version.clone(),
+                state,
+            })
+            .unwrap();
     }
 }
 

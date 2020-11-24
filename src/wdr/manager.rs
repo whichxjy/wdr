@@ -6,16 +6,17 @@ use std::sync::RwLock;
 use std::thread;
 use std::time::Duration;
 use wdrlib::config::{ProcessConfig, WdrConfig};
-use wdrlib::info::State;
+use wdrlib::info::{ProcessInfo, State};
 use wdrlib::zk::ZkClient;
 use wdrlib::{zk_node_path, ZK_CONFIG_PATH};
 use zookeeper::CreateMode;
 
+use crate::event::listen_event;
 use crate::process::{self, Process};
 use crate::setting::{get_wdr_node_name, ZK_CONNECT_STRING};
 
 lazy_static! {
-    static ref ZK_CLIENT: ZkClient =
+    pub static ref ZK_CLIENT: ZkClient =
         ZkClient::new(&ZK_CONNECT_STRING).expect("Fail to connect to zk");
     static ref WORKERS_LOCK: RwLock<HashMap<String, Worker>> = RwLock::new(HashMap::new());
 }
@@ -49,6 +50,7 @@ pub fn run() {
     let mut prev_wdr_config = WdrConfig::default();
     let check_config_ticker = tick(Duration::new(5, 0));
 
+    let (process_info_sender, process_info_receiver) = bounded(1);
     let (stop_done_sender, stop_done_receiver) = unbounded();
     let (quit_sender, quit_receiver) = bounded(1);
 
@@ -56,6 +58,11 @@ pub fn run() {
         quit_sender.send(()).unwrap();
     })
     .expect("Error setting Ctrl-C handler");
+
+    // Listen event.
+    thread::spawn(move || {
+        listen_event(process_info_receiver);
+    });
 
     loop {
         select! {
@@ -71,7 +78,7 @@ pub fn run() {
                 fn_debug!("Read config: {:?}", wdr_config);
 
                 if wdr_config != prev_wdr_config {
-                    flush_all_processes(wdr_config.configs.clone(), &stop_done_sender);
+                    flush_all_processes(wdr_config.configs.clone(), &process_info_sender,&stop_done_sender);
                     prev_wdr_config = wdr_config;
                 }
             }
@@ -121,22 +128,32 @@ fn read_config() -> Option<WdrConfig> {
     }
 }
 
-fn flush_all_processes(process_configs: Vec<ProcessConfig>, stop_done_sender: &Sender<()>) {
+fn flush_all_processes(
+    process_configs: Vec<ProcessConfig>,
+    process_info_sender: &Sender<ProcessInfo>,
+    stop_done_sender: &Sender<()>,
+) {
     let mut valid_process_names: HashSet<String> = HashSet::new();
 
     for process_config in process_configs {
         valid_process_names.insert(process_config.name.to_owned());
 
+        let process_info_sender = process_info_sender.to_owned();
         let stop_done_sender = stop_done_sender.to_owned();
+
         thread::spawn(move || {
-            flush_process(process_config, stop_done_sender);
+            flush_process(process_config, process_info_sender, stop_done_sender);
         });
     }
 
     clear_useless_processes(valid_process_names);
 }
 
-fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
+fn flush_process(
+    process_config: ProcessConfig,
+    process_info_sender: Sender<ProcessInfo>,
+    stop_done_sender: Sender<()>,
+) {
     if let Some(old_worker) = WORKERS_LOCK
         .write()
         .unwrap()
@@ -162,6 +179,7 @@ fn flush_process(process_config: ProcessConfig, stop_done_sender: Sender<()>) {
     let mut new_process = Process {
         config: process_config.clone(),
         state_lock: RwLock::new(State::Init),
+        process_info_sender,
         stop_receiver,
         stop_done_sender,
     };
