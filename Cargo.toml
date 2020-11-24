@@ -9,8 +9,8 @@ name = "wdr"
 path = "src/wdr/main.rs"
 
 [[bin]]
-name = "wdr-manager"
-path = "src/wdr-manager/main.rs"
+name = "wdrm"
+path = "src/wdrm/main.rs"
 
 [lib]
 name = "wdrlib"
