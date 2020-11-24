@@ -17,3 +17,10 @@ macro_rules! zk_status_path {
         format!("/status/{}", $node_name)
     };
 }
+
+#[macro_export]
+macro_rules! zk_node_path {
+    ($node_name:expr) => {
+        format!("/node/{}", $node_name)
+    };
+}

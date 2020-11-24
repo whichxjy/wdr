@@ -7,11 +7,11 @@ use std::thread;
 use std::time::Duration;
 use wdrlib::config::{ProcessConfig, WdrConfig};
 use wdrlib::zk::ZkClient;
-use wdrlib::ZK_CONFIG_PATH;
+use wdrlib::{zk_node_path, ZK_CONFIG_PATH};
 use zookeeper::CreateMode;
 
 use crate::process::{self, Process};
-use crate::setting::ZK_CONNECT_STRING;
+use crate::setting::{get_wdr_node_name, ZK_CONNECT_STRING};
 
 lazy_static! {
     static ref ZK_CLIENT: ZkClient =
@@ -34,6 +34,17 @@ impl Worker {
 }
 
 pub fn run() {
+    let node_path = zk_node_path!(get_wdr_node_name());
+
+    // Ensure the node path exists.
+    if !ZK_CLIENT.exists(&ZK_CONFIG_PATH) {
+        // Create a new node.
+        if let Err(err) = ZK_CLIENT.create(&node_path, CreateMode::Persistent) {
+            fn_error!("Fail to create zk node path {}: {}", node_path, err);
+            return;
+        }
+    }
+
     let mut prev_wdr_config = WdrConfig::default();
     let check_config_ticker = tick(Duration::new(5, 0));
 
@@ -89,14 +100,6 @@ pub fn run() {
 }
 
 fn read_config() -> Option<WdrConfig> {
-    if !ZK_CLIENT.exists(&ZK_CONFIG_PATH) {
-        // Create a new node.
-        if let Err(err) = ZK_CLIENT.create(&ZK_CONFIG_PATH, CreateMode::Persistent) {
-            fn_error!("Fail to create zk config path: {}", err);
-            return None;
-        }
-    }
-
     // Read config.
     let config_data = match ZK_CLIENT.get_data(&ZK_CONFIG_PATH) {
         Ok(config_data) => config_data,
