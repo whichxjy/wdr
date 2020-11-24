@@ -4,7 +4,7 @@ use std::str;
 use std::sync::RwLock;
 use std::thread;
 use std::time::Duration;
-use wdrlib::model::{ProcessConfig, WdrConfig};
+use wdrlib::config::{ProcessConfig, WdrConfig};
 use wdrlib::zk::ZkClient;
 use zookeeper::CreateMode;
 

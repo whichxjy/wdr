@@ -1,5 +1,5 @@
 #[macro_use]
 extern crate fnlog;
 
-pub mod model;
+pub mod config;
 pub mod zk;
