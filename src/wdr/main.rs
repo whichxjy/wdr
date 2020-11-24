@@ -3,7 +3,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate fnlog;
 
-mod info;
 mod manager;
 mod process;
 mod setting;

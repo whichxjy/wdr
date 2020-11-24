@@ -6,11 +6,12 @@ use std::sync::RwLock;
 use std::thread;
 use std::time::Duration;
 use wdrlib::config::{ProcessConfig, WdrConfig};
+use wdrlib::info::State;
 use wdrlib::zk::ZkClient;
 use wdrlib::{zk_node_path, ZK_CONFIG_PATH};
 use zookeeper::CreateMode;
 
-use crate::process::{self, Process, State};
+use crate::process::{self, Process};
 use crate::setting::{get_wdr_node_name, ZK_CONNECT_STRING};
 
 lazy_static! {

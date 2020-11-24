@@ -2,6 +2,7 @@
 extern crate fnlog;
 
 pub mod config;
+pub mod info;
 pub mod zk;
 
 use lazy_static::lazy_static;

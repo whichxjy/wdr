@@ -9,6 +9,7 @@ use std::sync::RwLock;
 use std::thread;
 use url::Url;
 use wdrlib::config::ProcessConfig;
+use wdrlib::info::State;
 
 use crate::setting::WORKSPACE_PATH;
 
@@ -24,14 +25,6 @@ impl Process {
         let mut process_state = self.state_lock.write().unwrap();
         *process_state = state;
     }
-}
-
-pub enum State {
-    Init,
-    Downloading,
-    Ready,
-    Running,
-    Stopped,
 }
 
 pub fn prepare(process: &Process) -> Option<()> {
