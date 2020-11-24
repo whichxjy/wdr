@@ -25,6 +25,7 @@ impl Process {
     pub fn set_state(&self, state: State) {
         let mut process_state = self.state_lock.write().unwrap();
         *process_state = state.clone();
+
         self.process_info_sender
             .send(ProcessInfo {
                 name: self.config.name.clone(),
