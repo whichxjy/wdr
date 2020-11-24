@@ -37,13 +37,14 @@ impl ZkClient {
     }
 
     pub fn ensure(&self, path: &str) -> ZkResult<()> {
-        match self.exists(path) {
-            true => Ok(()),
-            false => match self.create(path) {
-                Err(err) => Err(err),
-                _ => Ok(()),
-            },
+        if self.exists(path) {
+            return Ok(());
         }
+
+        let last_index = path.rfind('/').unwrap_or(0);
+        let parent_path = &path[..last_index];
+        self.ensure(parent_path)?;
+        self.create(path).map(|_| ())
     }
 
     pub fn get_data(&self, path: &str) -> ZkResult<Vec<u8>> {
