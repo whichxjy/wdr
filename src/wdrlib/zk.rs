@@ -14,10 +14,8 @@ pub struct ZkClient {
 
 impl ZkClient {
     pub fn new(connect_string: &str) -> ZkResult<Self> {
-        match ZooKeeper::connect(connect_string, Duration::from_secs(15), LoggingWatcher) {
-            Ok(zk) => Ok(ZkClient { zk }),
-            Err(err) => Err(err),
-        }
+        ZooKeeper::connect(connect_string, Duration::from_secs(15), LoggingWatcher)
+            .map(|zk| ZkClient { zk })
     }
 
     pub fn create(&self, path: &str) -> ZkResult<String> {
@@ -37,27 +35,22 @@ impl ZkClient {
     }
 
     pub fn ensure(&self, path: &str) -> ZkResult<()> {
-        if self.exists(path) {
+        if path.is_empty() || self.exists(path) {
             return Ok(());
         }
 
         let last_index = path.rfind('/').unwrap_or(0);
         let parent_path = &path[..last_index];
+
         self.ensure(parent_path)?;
         self.create(path).map(|_| ())
     }
 
     pub fn get_data(&self, path: &str) -> ZkResult<Vec<u8>> {
-        match self.zk.get_data(path, false) {
-            Ok((data, _)) => Ok(data),
-            Err(err) => Err(err),
-        }
+        self.zk.get_data(path, false).map(|(data, _)| data)
     }
 
     pub fn set_data(&self, path: &str, data: Vec<u8>) -> ZkResult<Stat> {
-        match self.ensure(path) {
-            Ok(()) => self.zk.set_data(path, data, None),
-            Err(err) => Err(err),
-        }
+        self.ensure(path).and(self.zk.set_data(path, data, None))
     }
 }
