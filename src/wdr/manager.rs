@@ -107,7 +107,10 @@ fn read_config() -> Option<WdrConfig> {
     // Read config.
     let config_data = match ZK_CLIENT.get_data(&ZK_CONFIG_PATH) {
         Ok(config_data) => config_data,
-        _ => return None,
+        Err(err) => {
+            fn_error!("Fail to get data from zk: {}", err);
+            return None;
+        }
     };
 
     let config_data = match str::from_utf8(&config_data) {
@@ -118,10 +121,7 @@ fn read_config() -> Option<WdrConfig> {
         }
     };
 
-    match WdrConfig::from_str(config_data) {
-        Some(wdr_config) => Some(wdr_config),
-        None => None,
-    }
+    WdrConfig::from_str(config_data)
 }
 
 fn flush_all_processes(
