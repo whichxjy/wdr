@@ -77,7 +77,8 @@ pub fn run() {
                 fn_debug!("Read config: {:?}", wdr_config);
 
                 if wdr_config != prev_wdr_config {
-                    flush_all_processes(wdr_config.configs.clone(), &process_info_sender,&stop_done_sender);
+                    fn_debug!("Config was updated");
+                    flush_all_processes(wdr_config.configs.clone(), &process_info_sender, &stop_done_sender);
                     prev_wdr_config = wdr_config;
                 }
             }
@@ -153,24 +154,22 @@ fn flush_process(
     process_info_sender: Sender<ProcessInfo>,
     stop_done_sender: Sender<()>,
 ) {
-    if let Some(old_worker) = WORKERS_LOCK
-        .write()
-        .unwrap()
-        .get_mut(process_config.name.as_str())
     {
-        if process_config.version == old_worker.version {
-            return;
-        }
+        let mut workers = WORKERS_LOCK.write().unwrap();
 
-        // Stop old process.
-        WORKERS_LOCK
-            .write()
-            .unwrap()
-            .get_mut(&process_config.name)
-            .unwrap()
-            .stop_sender
-            .send(())
-            .unwrap();
+        if let Some(old_worker) = workers.get_mut(process_config.name.as_str()) {
+            if process_config.version == old_worker.version {
+                return;
+            }
+
+            // Stop old process.
+            workers
+                .get_mut(&process_config.name)
+                .unwrap()
+                .stop_sender
+                .send(())
+                .unwrap();
+        }
     }
 
     let (stop_sender, stop_receiver) = bounded(1);
@@ -203,23 +202,27 @@ fn flush_process(
 fn clear_useless_processes(valid_process_names: HashSet<String>) {
     let mut useless_process_names: HashSet<String> = HashSet::new();
 
-    for name in WORKERS_LOCK.read().unwrap().keys() {
-        if !valid_process_names.contains(name.as_str()) {
-            useless_process_names.insert(name.to_owned());
+    {
+        let workers = WORKERS_LOCK.read().unwrap();
+
+        for name in workers.keys() {
+            if !valid_process_names.contains(name.as_str()) {
+                useless_process_names.insert(name.to_owned());
+            }
         }
     }
 
+    let mut workers = WORKERS_LOCK.write().unwrap();
+
     for useless_process_name in useless_process_names {
-        WORKERS_LOCK
-            .write()
-            .unwrap()
+        workers
             .get_mut(&useless_process_name)
             .unwrap()
             .stop_sender
             .send(())
             .unwrap();
 
-        WORKERS_LOCK.write().unwrap().remove(&useless_process_name);
+        workers.remove(&useless_process_name);
         fn_info!("Process {} is clear", useless_process_name);
     }
 }
