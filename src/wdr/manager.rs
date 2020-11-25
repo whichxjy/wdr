@@ -108,23 +108,23 @@ pub fn run() {
 
 fn read_config() -> Option<WdrConfig> {
     // Read config.
-    let config_data = match ZK_CLIENT.get_data(&ZK_CONFIG_PATH) {
+    let raw_data = match ZK_CLIENT.get_data(&ZK_CONFIG_PATH) {
         Ok(config_data) => config_data,
         Err(err) => {
-            fn_error!("Fail to get data from zk: {}", err);
+            fn_error!("Fail to get raw data from zk: {}", err);
             return None;
         }
     };
 
-    let config_data = match str::from_utf8(&config_data) {
-        Ok(config_data) => config_data,
+    let data = match str::from_utf8(&raw_data) {
+        Ok(data) => data,
         Err(err) => {
-            fn_error!("Fail to parse config data: {}", err);
+            fn_error!("Fail to convert raw data: {}", err);
             return None;
         }
     };
 
-    WdrConfig::from_str(config_data)
+    WdrConfig::from_str(data)
 }
 
 fn flush_all_processes(

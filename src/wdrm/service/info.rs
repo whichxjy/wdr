@@ -16,26 +16,26 @@ async fn get_node_info(web::Path(node_name): web::Path<String>) -> Result<HttpRe
         }
     };
 
-    let data = match zk_client.get_data(&zk_node_info_path!(node_name)) {
+    let raw_data = match zk_client.get_data(&zk_node_info_path!(node_name)) {
         Ok(data) => data,
         Err(err) => {
-            fn_error!("Fail to read info data from zk: {}", err);
+            fn_error!("Fail to get raw data from zk: {}", err);
             return Ok(HttpResponse::NotFound().finish());
         }
     };
 
-    let raw_node_info = match String::from_utf8(data) {
-        Ok(raw_node_info) => raw_node_info,
+    let data = match String::from_utf8(raw_data) {
+        Ok(data) => data,
         Err(err) => {
-            fn_error!("Fail to get raw node info: {}", err);
+            fn_error!("Fail to convert raw data: {}", err);
             return Ok(HttpResponse::NotFound().finish());
         }
     };
 
-    let node_info = match NodeInfo::from_str(&raw_node_info) {
+    let node_info = match NodeInfo::from_str(&data) {
         Some(node_info) => node_info,
         None => {
-            fn_error!("Fail to parse raw node info: {}", raw_node_info);
+            fn_error!("Fail to parse raw node info: {}", data);
             return Ok(HttpResponse::NotFound().finish());
         }
     };

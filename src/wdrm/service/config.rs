@@ -16,26 +16,26 @@ async fn get_config() -> Result<HttpResponse> {
         }
     };
 
-    let data = match zk_client.get_data(&ZK_CONFIG_PATH) {
+    let raw_data = match zk_client.get_data(&ZK_CONFIG_PATH) {
+        Ok(raw_data) => raw_data,
+        Err(err) => {
+            fn_error!("Fail to get raw data from zk: {}", err);
+            return Ok(HttpResponse::NotFound().finish());
+        }
+    };
+
+    let data = match String::from_utf8(raw_data) {
         Ok(data) => data,
         Err(err) => {
-            fn_error!("Fail to read config data from zk: {}", err);
+            fn_error!("Fail to convert raw data: {}", err);
             return Ok(HttpResponse::NotFound().finish());
         }
     };
 
-    let raw_wdr_config = match String::from_utf8(data) {
-        Ok(raw_wdr_config) => raw_wdr_config,
-        Err(err) => {
-            fn_error!("Fail to get raw wdr config: {}", err);
-            return Ok(HttpResponse::NotFound().finish());
-        }
-    };
-
-    let wdr_confg = match WdrConfig::from_str(&raw_wdr_config) {
+    let wdr_confg = match WdrConfig::from_str(&data) {
         Some(wdr_confg) => wdr_confg,
         None => {
-            fn_error!("Fail to parse wdr config: {}", raw_wdr_config);
+            fn_error!("Fail to parse wdr config: {}", data);
             return Ok(HttpResponse::NotFound().finish());
         }
     };
