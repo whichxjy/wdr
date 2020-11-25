@@ -5,7 +5,8 @@ extern crate fnlog;
 
 mod setting;
 
-use actix_web::{get, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, App, HttpResponse, HttpServer};
+use std::io::Result;
 use wdrlib::config::WdrConfig;
 use wdrlib::zk::ZkClient;
 use wdrlib::ZK_CONFIG_PATH;
@@ -13,15 +14,14 @@ use wdrlib::ZK_CONFIG_PATH;
 use crate::setting::ZK_CONNECT_STRING;
 
 #[get("/config")]
-async fn get_config() -> impl Responder {
+async fn get_config() -> Result<HttpResponse> {
     let zk_client = ZkClient::new(&ZK_CONNECT_STRING).expect("Fail to connect to zk");
 
     let data = zk_client.get_data(&ZK_CONFIG_PATH).unwrap();
-    let raw_config = String::from_utf8(data).unwrap();
-    let confg = WdrConfig::from_str(&raw_config);
-    let res = serde_json::to_string(&confg).unwrap();
+    let raw_wdr_config = String::from_utf8(data).unwrap();
+    let wdr_confg = WdrConfig::from_str(&raw_wdr_config).unwrap();
 
-    HttpResponse::Ok().body(res)
+    Ok(HttpResponse::Ok().json(wdr_confg))
 }
 
 #[actix_web::main]
