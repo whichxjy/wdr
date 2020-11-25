@@ -38,10 +38,13 @@ pub fn run() {
     let node_path = zk_node_path!(get_wdr_node_name());
 
     // Ensure the node path exists.
-    if let Err(err) = ZK_CLIENT.ensure(&node_path) {
-        fn_error!("Fail to create zk node path {}: {}", node_path, err);
-        return;
-    }
+    match ZK_CLIENT.ensure(&node_path) {
+        Ok(()) => fn_info!("Wdr node path: {}", node_path),
+        Err(err) => {
+            fn_error!("Fail to create zk node path {}: {}", node_path, err);
+            return;
+        }
+    };
 
     let mut prev_wdr_config = WdrConfig::default();
     let check_config_ticker = tick(Duration::new(5, 0));

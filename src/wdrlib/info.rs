@@ -23,3 +23,17 @@ pub struct ProcessInfo {
 pub struct NodeInfo {
     pub process_info_list: Vec<ProcessInfo>,
 }
+
+impl NodeInfo {
+    pub fn from_str(data: &str) -> Option<Self> {
+        let node_info: NodeInfo = match serde_json::from_str(data) {
+            Ok(node_info) => node_info,
+            Err(err) => {
+                fn_error!("Fail to parse node info: {}", err);
+                return None;
+            }
+        };
+
+        Some(node_info)
+    }
+}
