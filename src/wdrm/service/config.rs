@@ -40,5 +40,7 @@ async fn get_config() -> Result<HttpResponse> {
         }
     };
 
-    Ok(HttpResponse::Ok().content_type("json").json(wdr_confg))
+    Ok(HttpResponse::Ok()
+        .content_type("application/json")
+        .json(wdr_confg))
 }
