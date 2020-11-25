@@ -1,4 +1,4 @@
-use actix_web::{get, HttpResponse};
+use actix_web::{get, post, web, HttpResponse};
 use std::io::Result;
 use wdrlib::config::WdrConfig;
 use wdrlib::zk::ZkClient;
@@ -43,4 +43,24 @@ async fn get_config() -> Result<HttpResponse> {
     Ok(HttpResponse::Ok()
         .content_type("application/json")
         .json(wdr_confg))
+}
+
+#[post("/config")]
+async fn set_config(wdr_confg: web::Json<WdrConfig>) -> Result<HttpResponse> {
+    let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
+        Ok(zk_client) => zk_client,
+        Err(err) => {
+            fn_error!("Fail to connect to zk: {}", err);
+            return Ok(HttpResponse::InternalServerError().finish());
+        }
+    };
+
+    let data = serde_json::to_string(&wdr_confg.into_inner()).unwrap();
+
+    if let Err(err) = zk_client.set_data(&ZK_CONFIG_PATH, data.as_bytes().to_vec()) {
+        fn_error!("Fail to write wdr config: {}", err);
+        return Ok(HttpResponse::InternalServerError().finish());
+    }
+
+    Ok(HttpResponse::Ok().finish())
 }
