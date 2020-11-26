@@ -5,7 +5,7 @@ use wdrlib::info::NodeInfo;
 use wdrlib::zk::ZkClient;
 use wdrlib::zk_node_info_path;
 
-use crate::setting::ZK_CONNECT_STRING;
+use crate::settings::ZK_CONNECT_STRING;
 
 #[get("/info/{node_name}")]
 async fn get_node_info(web::Path(node_name): web::Path<String>) -> Result<HttpResponse> {

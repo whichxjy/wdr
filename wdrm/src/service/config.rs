@@ -5,7 +5,7 @@ use wdrlib::config::WdrConfig;
 use wdrlib::zk::{CreateMode, ZkClient};
 use wdrlib::ZK_CONFIG_PATH;
 
-use crate::setting::ZK_CONNECT_STRING;
+use crate::settings::ZK_CONNECT_STRING;
 
 #[get("/config")]
 async fn get_config() -> Result<HttpResponse> {

@@ -4,7 +4,7 @@ extern crate lazy_static;
 extern crate fnlog;
 
 mod service;
-mod setting;
+mod settings;
 
 use actix_web::{App, HttpServer};
 

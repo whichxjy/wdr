@@ -3,7 +3,7 @@ use std::io::Result;
 use wdrlib::zk::ZkClient;
 use wdrlib::{zk_node_path, ZK_NODE_PATH};
 
-use crate::setting::ZK_CONNECT_STRING;
+use crate::settings::ZK_CONNECT_STRING;
 
 #[get("/node")]
 async fn get_node_list() -> Result<HttpResponse> {

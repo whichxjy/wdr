@@ -19,7 +19,7 @@ lazy_static! {
             fn_warn!("Fail to read settings from env: {}", err);
         }
 
-        let settings_map = settings.clone()
+        let settings_map = settings
             .try_into::<HashMap<String, String>>()
             .expect("No settings provided");
 

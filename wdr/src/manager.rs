@@ -180,7 +180,7 @@ fn flush_process(
 
     let (stop_sender, stop_receiver) = bounded(1);
 
-    let mut new_process = Process {
+    let new_process = Process {
         config: process_config.clone(),
         state_lock: RwLock::new(State::Init),
         process_info_sender,
@@ -189,7 +189,7 @@ fn flush_process(
     };
 
     // TODO: Retry.
-    if process::prepare(&mut new_process).is_none() {
+    if process::prepare(&new_process).is_none() {
         fn_error!("Fail to prepare process {}", process_config.name);
         return;
     }
