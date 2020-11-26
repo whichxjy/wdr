@@ -52,7 +52,7 @@ lazy_static! {
 
 pub fn init() {
     let settings_map = &SETTINGS_MAP as &HashMap<String, String>;
-    fn_debug!("Wdr settings: {:#?}", settings_map);
+    fn_debug!("Settings: {:#?}", settings_map);
 }
 
 pub fn get_wdr_node_name() -> String {

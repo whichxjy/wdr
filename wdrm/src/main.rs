@@ -11,6 +11,7 @@ use actix_web::{App, HttpServer};
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init();
+    settings::init();
     HttpServer::new(|| {
         App::new()
             .service(service::config::get_config)

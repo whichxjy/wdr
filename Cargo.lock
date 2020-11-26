@@ -2480,6 +2480,7 @@ name = "wdrm"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "config",
  "env_logger",
  "fnlog",
  "lazy_static",
