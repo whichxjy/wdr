@@ -7,6 +7,7 @@ mod service;
 mod settings;
 
 use actix_web::{App, HttpServer};
+use settings::ADDRESS;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -20,7 +21,7 @@ async fn main() -> std::io::Result<()> {
             .service(service::node::delete_node)
             .service(service::info::get_node_info)
     })
-    .bind("127.0.0.1:8080")?
+    .bind(&ADDRESS as &str)?
     .run()
     .await
 }

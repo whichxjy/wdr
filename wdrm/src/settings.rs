@@ -4,6 +4,7 @@ lazy_static! {
     // settings
     pub static ref SETTINGS_MAP: HashMap<String, String> = {
         let mut settings = config::Config::default();
+        settings.set_default("address", "localhost:8080").unwrap();
         settings.set_default("zk_connect_string", "localhost:2181").unwrap();
 
         // Merge file setting.
@@ -18,6 +19,10 @@ lazy_static! {
         settings
             .try_into::<HashMap<String, String>>()
             .expect("No settings provided")
+    };
+    // address
+    pub static ref ADDRESS: &'static str = {
+        SETTINGS_MAP.get("address").unwrap()
     };
     // zk connect string
     pub static ref ZK_CONNECT_STRING: &'static str = {
