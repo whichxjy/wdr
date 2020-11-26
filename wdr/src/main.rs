@@ -10,5 +10,6 @@ mod settings;
 
 fn main() {
     env_logger::init();
+    settings::init();
     manager::run();
 }
