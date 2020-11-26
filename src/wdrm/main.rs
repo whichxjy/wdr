@@ -15,6 +15,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(service::config::get_config)
             .service(service::config::set_config)
+            .service(service::node::get_node_list)
             .service(service::info::get_node_info)
     })
     .bind("127.0.0.1:8080")?

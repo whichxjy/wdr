@@ -53,4 +53,8 @@ impl ZkClient {
     pub fn set_data(&self, path: &str, data: Vec<u8>) -> ZkResult<Stat> {
         self.ensure(path).and(self.zk.set_data(path, data, None))
     }
+
+    pub fn get_children(&self, path: &str) -> ZkResult<Vec<String>> {
+        self.zk.get_children(path, false)
+    }
 }
