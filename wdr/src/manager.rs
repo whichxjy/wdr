@@ -1,5 +1,7 @@
 use crossbeam::channel::{bounded, tick, unbounded, Sender};
 use crossbeam::select;
+use retry::delay::Fixed;
+use retry::{retry_with_index, OperationResult};
 use std::collections::{HashMap, HashSet};
 use std::str::{self, FromStr};
 use std::sync::RwLock;
@@ -188,8 +190,27 @@ fn flush_process(
         stop_done_sender,
     };
 
-    // TODO: Retry.
-    if process::prepare(&new_process).is_none() {
+    let prepare_result: Result<&str, retry::Error<&str>> =
+        retry_with_index(Fixed::from_millis(100).take(5), |current_try| {
+            fn_info!(
+                "Try to prepare process {} (current try: {})",
+                process_config.name,
+                current_try
+            );
+
+            match process::prepare(&new_process) {
+                Some(()) => OperationResult::Ok("Finish"),
+                None => {
+                    fn_warn!(
+                        "Fail to prepare process {} this time (current try: {})",
+                        process_config.name,
+                        current_try
+                    );
+                    OperationResult::Retry("Resource should be prepared")
+                }
+            }
+        });
+    if prepare_result.is_err() {
         fn_error!("Fail to prepare process {}", process_config.name);
         return;
     }
