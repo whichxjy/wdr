@@ -32,6 +32,18 @@ impl ZkClient {
     }
 
     pub fn ensure(&self, path: &str, mode: CreateMode) -> ZkResult<()> {
+        fn ensure_persistent(zk_client: &ZkClient, path: &str) -> ZkResult<()> {
+            if path.is_empty() || zk_client.exists(path) {
+                return Ok(());
+            }
+
+            let last_index = path.rfind('/').unwrap_or(0);
+            let parent_path = &path[..last_index];
+
+            ensure_persistent(zk_client, parent_path)?;
+            zk_client.create(path, CreateMode::Persistent).map(|_| ())
+        }
+
         if path.is_empty() || self.exists(path) {
             return Ok(());
         }
@@ -39,7 +51,7 @@ impl ZkClient {
         let last_index = path.rfind('/').unwrap_or(0);
         let parent_path = &path[..last_index];
 
-        self.ensure(parent_path, mode)?;
+        ensure_persistent(self, parent_path)?;
         self.create(path, mode).map(|_| ())
     }
 
