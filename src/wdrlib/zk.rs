@@ -46,6 +46,10 @@ impl ZkClient {
         self.create(path).map(|_| ())
     }
 
+    pub fn delete(&self, path: &str) -> ZkResult<()> {
+        self.zk.delete(path, None)
+    }
+
     pub fn get_data(&self, path: &str) -> ZkResult<Vec<u8>> {
         self.zk.get_data(path, false).map(|(data, _)| data)
     }
