@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
@@ -15,16 +16,11 @@ pub struct ProcessConfig {
     pub cmd: String,
 }
 
-impl WdrConfig {
-    pub fn from_str(data: &str) -> Option<Self> {
-        let wdr_config: WdrConfig = match serde_json::from_str(data) {
-            Ok(wdr_config) => wdr_config,
-            Err(err) => {
-                fn_error!("Fail to parse wdr config: {}", err);
-                return None;
-            }
-        };
+impl FromStr for WdrConfig {
+    type Err = serde_json::Error;
 
-        Some(wdr_config)
+    fn from_str(data: &str) -> Result<Self, Self::Err> {
+        let wdr_config: WdrConfig = serde_json::from_str(data)?;
+        Ok(wdr_config)
     }
 }

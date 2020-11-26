@@ -1,7 +1,7 @@
 use crossbeam::channel::{bounded, tick, unbounded, Sender};
 use crossbeam::select;
 use std::collections::{HashMap, HashSet};
-use std::str;
+use std::str::{self, FromStr};
 use std::sync::RwLock;
 use std::thread;
 use std::time::Duration;
@@ -125,7 +125,13 @@ fn read_config() -> Option<WdrConfig> {
         }
     };
 
-    WdrConfig::from_str(data)
+    match WdrConfig::from_str(&data) {
+        Ok(wdr_confg) => Some(wdr_confg),
+        Err(err) => {
+            fn_error!("Fail to parse wdr config: {}", err);
+            None
+        }
+    }
 }
 
 fn flush_all_processes(

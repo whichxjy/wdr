@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
@@ -24,16 +25,11 @@ pub struct NodeInfo {
     pub process_info_list: Vec<ProcessInfo>,
 }
 
-impl NodeInfo {
-    pub fn from_str(data: &str) -> Option<Self> {
-        let node_info: NodeInfo = match serde_json::from_str(data) {
-            Ok(node_info) => node_info,
-            Err(err) => {
-                fn_error!("Fail to parse node info: {}", err);
-                return None;
-            }
-        };
+impl FromStr for NodeInfo {
+    type Err = serde_json::Error;
 
-        Some(node_info)
+    fn from_str(data: &str) -> Result<Self, Self::Err> {
+        let node_info: NodeInfo = serde_json::from_str(data)?;
+        Ok(node_info)
     }
 }

@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, HttpResponse};
 use std::io::Result;
+use std::str::FromStr;
 use wdrlib::config::WdrConfig;
 use wdrlib::zk::{CreateMode, ZkClient};
 use wdrlib::ZK_CONFIG_PATH;
@@ -33,9 +34,9 @@ async fn get_config() -> Result<HttpResponse> {
     };
 
     let wdr_confg = match WdrConfig::from_str(&data) {
-        Some(wdr_confg) => wdr_confg,
-        None => {
-            fn_error!("Fail to parse wdr config: {}", data);
+        Ok(wdr_confg) => wdr_confg,
+        Err(err) => {
+            fn_error!("Fail to parse wdr config: {}", err);
             return Ok(HttpResponse::NotFound().finish());
         }
     };

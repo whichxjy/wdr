@@ -1,5 +1,6 @@
 use actix_web::{get, web, HttpResponse};
 use std::io::Result;
+use std::str::FromStr;
 use wdrlib::info::NodeInfo;
 use wdrlib::zk::ZkClient;
 use wdrlib::zk_node_info_path;
@@ -32,10 +33,10 @@ async fn get_node_info(web::Path(node_name): web::Path<String>) -> Result<HttpRe
         }
     };
 
-    let node_info = match NodeInfo::from_str(&data) {
-        Some(node_info) => node_info,
-        None => {
-            fn_error!("Fail to parse raw node info: {}", data);
+    let node_info: NodeInfo = match NodeInfo::from_str(&data) {
+        Ok(node_info) => node_info,
+        Err(err) => {
+            fn_error!("Fail to parse raw node info: {}", err);
             return Ok(HttpResponse::NotFound().finish());
         }
     };
