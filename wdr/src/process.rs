@@ -11,7 +11,7 @@ use url::Url;
 use wdrlib::config::ProcessConfig;
 use wdrlib::info::{ProcessInfo, State};
 
-use crate::setting::WORKSPACE_PATH;
+use crate::settings::WORKSPACE_PATH;
 
 pub struct Process {
     pub config: ProcessConfig,

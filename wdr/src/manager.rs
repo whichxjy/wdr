@@ -12,7 +12,7 @@ use wdrlib::{zk_node_path, ZK_CONFIG_PATH};
 
 use crate::event::listen_event;
 use crate::process::{self, Process};
-use crate::setting::{get_wdr_node_name, ZK_CONNECT_STRING};
+use crate::settings::{get_wdr_node_name, ZK_CONNECT_STRING};
 
 lazy_static! {
     pub static ref ZK_CLIENT: ZkClient =

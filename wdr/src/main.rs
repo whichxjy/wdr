@@ -6,7 +6,7 @@ extern crate fnlog;
 mod event;
 mod manager;
 mod process;
-mod setting;
+mod settings;
 
 fn main() {
     env_logger::init();

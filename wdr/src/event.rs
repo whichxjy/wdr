@@ -5,7 +5,7 @@ use wdrlib::zk::CreateMode;
 use wdrlib::zk_node_info_path;
 
 use crate::manager::ZK_CLIENT;
-use crate::setting::get_wdr_node_name;
+use crate::settings::get_wdr_node_name;
 
 pub fn listen_event(process_info_receiver: Receiver<ProcessInfo>) {
     // process name => process info
