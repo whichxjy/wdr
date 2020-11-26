@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, HttpResponse};
 use std::io::Result;
 use wdrlib::config::WdrConfig;
-use wdrlib::zk::ZkClient;
+use wdrlib::zk::{CreateMode, ZkClient};
 use wdrlib::ZK_CONFIG_PATH;
 
 use crate::setting::ZK_CONNECT_STRING;
@@ -57,7 +57,11 @@ async fn set_config(wdr_confg: web::Json<WdrConfig>) -> Result<HttpResponse> {
 
     let data = serde_json::to_string(&wdr_confg.into_inner()).unwrap();
 
-    if let Err(err) = zk_client.set_data(&ZK_CONFIG_PATH, data.as_bytes().to_vec()) {
+    if let Err(err) = zk_client.set_data(
+        &ZK_CONFIG_PATH,
+        data.as_bytes().to_vec(),
+        CreateMode::Persistent,
+    ) {
         fn_error!("Fail to write wdr config: {}", err);
         return Ok(HttpResponse::InternalServerError().finish());
     }

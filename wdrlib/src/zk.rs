@@ -1,5 +1,6 @@
 use std::time::Duration;
-use zookeeper::{Acl, CreateMode, Stat, WatchedEvent, Watcher, ZkResult, ZooKeeper};
+pub use zookeeper::CreateMode;
+use zookeeper::{Acl, Stat, WatchedEvent, Watcher, ZkResult, ZooKeeper};
 
 struct LoggingWatcher;
 impl Watcher for LoggingWatcher {
@@ -18,23 +19,19 @@ impl ZkClient {
             .map(|zk| ZkClient { zk })
     }
 
-    pub fn create(&self, path: &str) -> ZkResult<String> {
-        self.zk.create(
-            path,
-            vec![],
-            Acl::open_unsafe().clone(),
-            CreateMode::Persistent,
-        )
+    fn create(&self, path: &str, mode: CreateMode) -> ZkResult<String> {
+        self.zk
+            .create(path, vec![], Acl::open_unsafe().clone(), mode)
     }
 
-    pub fn exists(&self, path: &str) -> bool {
+    fn exists(&self, path: &str) -> bool {
         match self.zk.exists(path, false) {
             Ok(stat) => stat.is_some(),
             _ => false,
         }
     }
 
-    pub fn ensure(&self, path: &str) -> ZkResult<()> {
+    pub fn ensure(&self, path: &str, mode: CreateMode) -> ZkResult<()> {
         if path.is_empty() || self.exists(path) {
             return Ok(());
         }
@@ -42,8 +39,8 @@ impl ZkClient {
         let last_index = path.rfind('/').unwrap_or(0);
         let parent_path = &path[..last_index];
 
-        self.ensure(parent_path)?;
-        self.create(path).map(|_| ())
+        self.ensure(parent_path, mode)?;
+        self.create(path, mode).map(|_| ())
     }
 
     pub fn delete(&self, path: &str) -> ZkResult<()> {
@@ -54,8 +51,9 @@ impl ZkClient {
         self.zk.get_data(path, false).map(|(data, _)| data)
     }
 
-    pub fn set_data(&self, path: &str, data: Vec<u8>) -> ZkResult<Stat> {
-        self.ensure(path).and(self.zk.set_data(path, data, None))
+    pub fn set_data(&self, path: &str, data: Vec<u8>, mode: CreateMode) -> ZkResult<Stat> {
+        self.ensure(path, mode)
+            .and(self.zk.set_data(path, data, None))
     }
 
     pub fn get_children(&self, path: &str) -> ZkResult<Vec<String>> {

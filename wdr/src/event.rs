@@ -1,6 +1,7 @@
 use crossbeam::channel::Receiver;
 use std::collections::HashMap;
 use wdrlib::info::{NodeInfo, ProcessInfo};
+use wdrlib::zk::CreateMode;
 use wdrlib::zk_node_info_path;
 
 use crate::manager::ZK_CLIENT;
@@ -27,6 +28,7 @@ pub fn listen_event(process_info_receiver: Receiver<ProcessInfo>) {
         match ZK_CLIENT.set_data(
             &zk_node_info_path!(get_wdr_node_name()),
             data.as_bytes().to_vec(),
+            CreateMode::Ephemeral,
         ) {
             Err(err) => fn_error!("Fail to write node info: {}", err),
             _ => fn_debug!("Write node info: {}", data),

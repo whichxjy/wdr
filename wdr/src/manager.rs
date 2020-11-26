@@ -7,7 +7,7 @@ use std::thread;
 use std::time::Duration;
 use wdrlib::config::{ProcessConfig, WdrConfig};
 use wdrlib::info::{ProcessInfo, State};
-use wdrlib::zk::ZkClient;
+use wdrlib::zk::{CreateMode, ZkClient};
 use wdrlib::{zk_node_path, ZK_CONFIG_PATH};
 
 use crate::event::listen_event;
@@ -38,7 +38,7 @@ pub fn run() {
     let node_path = zk_node_path!(get_wdr_node_name());
 
     // Ensure the node path exists.
-    match ZK_CLIENT.ensure(&node_path) {
+    match ZK_CLIENT.ensure(&node_path, CreateMode::Persistent) {
         Ok(()) => fn_info!("Wdr node path: {}", node_path),
         Err(err) => {
             fn_error!("Fail to create zk node path {}: {}", node_path, err);
