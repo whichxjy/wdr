@@ -1,3 +1,19 @@
 # Wdr
 
+Wdr is client-server process control system.
+
+## Design
+
 ![wdr-design](docs/wdr-design.png)
+
+## Wdr (Server Side)
+
+```
+RUST_LOG=info cargo run -p wdr
+```
+
+## Wdr Manager (Client Side)
+
+```
+RUST_LOG=info cargo run -p wdrm
+```
