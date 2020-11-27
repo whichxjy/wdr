@@ -46,10 +46,9 @@ impl ZkClient {
 
             ensure_recur(zk_client, parent_path, None)?;
 
-            match mode {
-                Some(mode) => zk_client.create(path, mode).map(|_| ()),
-                None => zk_client.create(path, CreateMode::Persistent).map(|_| ()),
-            }
+            zk_client
+                .create(path, mode.unwrap_or(CreateMode::Persistent))
+                .map(|_| ())
         }
 
         ensure_recur(self, path, Some(mode))
