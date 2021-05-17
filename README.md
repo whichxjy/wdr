@@ -20,7 +20,7 @@ RUST_LOG=info cargo run -p wdrm
 
 ## Wdr Manager API
 
-### Get Config
+### Get configuration
 
 Request:
 
@@ -49,7 +49,7 @@ Response:
 }
 ```
 
-### Set Config
+### Set configuration
 
 Request:
 
@@ -73,12 +73,30 @@ PUT /configs
 }
 ```
 
-### Get Node Info
+### Get node list
 
 Request:
 
 ```
-GET /info/{node_name}
+GET /nodes
+```
+
+Response:
+
+```json
+[
+    "node-a-192.66.66.66",
+    "node-b-192.77.77.77",
+    "node-c-192.88.88.88"
+]
+```
+
+### Get node info
+
+Request:
+
+```
+GET /nodes/{node_name}/info
 ```
 
 Response:
@@ -100,25 +118,7 @@ Response:
 }
 ```
 
-### Get Node List
-
-Request:
-
-```
-GET /nodes
-```
-
-Response:
-
-```json
-[
-    "node-a-192.66.66.66",
-    "node-b-192.77.77.77",
-    "node-c-192.88.88.88"
-]
-```
-
-### Delete Node
+### Delete a node
 
 Request:
 

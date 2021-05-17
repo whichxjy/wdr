@@ -19,7 +19,7 @@ async fn main() -> std::io::Result<()> {
             .service(service::config::set_config)
             .service(service::node::get_node_list)
             .service(service::node::delete_node)
-            .service(service::info::get_node_info)
+            .service(service::node::get_node_info)
     })
     .bind(&ADDRESS as &str)?
     .run()
