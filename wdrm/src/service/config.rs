@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{get, put, web, HttpResponse};
 use std::io::Result;
 use std::str::FromStr;
 use wdrlib::config::WdrConfig;
@@ -7,7 +7,7 @@ use wdrlib::ZK_CONFIG_PATH;
 
 use crate::settings::ZK_CONNECT_STRING;
 
-#[get("/config")]
+#[get("/configs")]
 async fn get_config() -> Result<HttpResponse> {
     let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
         Ok(zk_client) => zk_client,
@@ -46,7 +46,7 @@ async fn get_config() -> Result<HttpResponse> {
         .json(wdr_confg))
 }
 
-#[post("/config")]
+#[put("/configs")]
 async fn set_config(wdr_confg: web::Json<WdrConfig>) -> Result<HttpResponse> {
     let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
         Ok(zk_client) => zk_client,

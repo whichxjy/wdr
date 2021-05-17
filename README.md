@@ -25,7 +25,7 @@ RUST_LOG=info cargo run -p wdrm
 Request:
 
 ```
-GET /config
+GET /configs
 ```
 
 Response:
@@ -54,7 +54,7 @@ Response:
 Request:
 
 ```json
-POST /config
+PUT /configs
 {
     "configs": [
         {
@@ -105,7 +105,7 @@ Response:
 Request:
 
 ```
-GET /node
+GET /nodes
 ```
 
 Response:
@@ -123,5 +123,5 @@ Response:
 Request:
 
 ```
-DELETE /node/{node_name}
+DELETE /nodes/{node_name}
 ```

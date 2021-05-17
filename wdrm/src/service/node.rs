@@ -5,7 +5,7 @@ use wdrlib::{zk_node_path, ZK_NODE_PATH};
 
 use crate::settings::ZK_CONNECT_STRING;
 
-#[get("/node")]
+#[get("/nodes")]
 async fn get_node_list() -> Result<HttpResponse> {
     let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
         Ok(zk_client) => zk_client,
@@ -28,7 +28,7 @@ async fn get_node_list() -> Result<HttpResponse> {
         .json(children))
 }
 
-#[delete("/node/{node_name}")]
+#[delete("/nodes/{node_name}")]
 async fn delete_node(web::Path(node_name): web::Path<String>) -> Result<HttpResponse> {
     let zk_client = match ZkClient::new(&ZK_CONNECT_STRING) {
         Ok(zk_client) => zk_client,
@@ -38,11 +38,6 @@ async fn delete_node(web::Path(node_name): web::Path<String>) -> Result<HttpResp
         }
     };
 
-    match zk_client.delete(&zk_node_path!(node_name)) {
-        Ok(()) => Ok(HttpResponse::Ok().finish()),
-        Err(err) => {
-            fn_error!("Fail delete node {} from zk: {}", node_name, err);
-            Ok(HttpResponse::NotFound().finish())
-        }
-    }
+    let _ = zk_client.delete(&zk_node_path!(node_name));
+    Ok(HttpResponse::Ok().finish())
 }
